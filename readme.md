@@ -14,3 +14,11 @@ https://rebane2001.com/mapartcraft/ などで作られたnbtファイル対象�
 ## その他
 setting.properties内で足場ブロックを丸石から他のブロックに変更できます。
 多少探索強度も変えられます。
+
+before
+
+![](https://pbs.twimg.com/media/FAi8y8NUcAAeeKa?format=jpg) 
+
+after
+
+![](https://pbs.twimg.com/media/FAi8y8OUUAA70aj?format=jpg) 
