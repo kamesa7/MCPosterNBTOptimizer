@@ -32,16 +32,13 @@ public class NBTOptimizer {
 	public NBTOptimizer(File file) throws IOException {
 		NamedTag rawtag = NBTUtil.read(file);
 		System.out.println(rawtag.getName());
-		Tag<?> fulltag = rawtag.getTag();// namedtag.toString();
+		Tag<?> fulltag = rawtag.getTag();
 		CompoundTag cpt = (CompoundTag) fulltag;
 		System.out.println(cpt.keySet());
 		for (Entry<String, Tag<?>> entry : cpt.entrySet()) {
-			System.out.println(entry.getKey());
 			String value = entry.getValue().toString();
-			System.out.println(value.substring(0, Math.min(value.length(), 50)));
+			System.out.println(entry.getKey() + " : " + value.substring(0, Math.min(value.length(), 75)));
 		}
-		System.out.println();
-
 		ListTag<CompoundTag> palette = cpt.getListTag("palette").asCompoundTagList();
 //		for (CompoundTag tag : palette) {
 //			System.out.println(tag);
@@ -53,11 +50,11 @@ public class NBTOptimizer {
 		X = size.get(0).asInt();
 		Y = size.get(1).asInt();
 		Z = size.get(2).asInt();
-		System.out.println(String.format("(%d, %d, %d)", X, Y, Z));
+		System.out.println(String.format("original size (%d, %d, %d)", X, Y, Z));
 		originalmap = new int[X][Z];
 
 		ListTag<CompoundTag> blocks = cpt.getListTag("blocks").asCompoundTagList();
-		System.out.println(blocks.size());
+		System.out.println(blocks.size() + " blocks used");
 //		int i = 0;
 //		for (CompoundTag tag : blocks) {
 //			System.out.println(tag);
@@ -85,11 +82,6 @@ public class NBTOptimizer {
 			}
 		}
 
-//		System.out.println(pixelmap[0][0]);
-//		System.out.println(pixelmap[X - 1][0]);
-//		System.out.println(pixelmap[0][Z - 1]);
-//		System.out.println(pixelmap[X - 1][Z - 1]);
-
 		managers = new LineManager[X];
 		for (int x = 0; x < X; x++) {
 			managers[x] = new LineManager(x);
@@ -105,7 +97,7 @@ public class NBTOptimizer {
 			sorted.sort(null);
 			changecnt++;
 		}
-		System.out.println(changecnt);
+		System.out.println(changecnt + " moves operated");
 
 		int outputy = 0;
 		for (int x = 0; x < X; x++) {
@@ -114,7 +106,7 @@ public class NBTOptimizer {
 			}
 		}
 		size.set(1, new IntTag(outputy));
-		System.out.println(String.format("(%d, %d, %d)", X, outputy, Z));
+		System.out.println(String.format("poster size (%d, %d, %d)", X, outputy, Z));
 		for (CompoundTag tag : blocks) {
 			ListTag<IntTag> pos = tag.getListTag("pos").asIntTagList();
 			int x = pos.get(0).asInt();
@@ -122,7 +114,7 @@ public class NBTOptimizer {
 			int z = pos.get(2).asInt();
 			pos.set(1, new IntTag(pixelmap[x][z].y));
 		}
-		NBTUtil.write(rawtag, String.format("%d.nbt", System.currentTimeMillis()));
+		NBTUtil.write(rawtag, String.format("%d-optimized.nbt", file.getName()));
 		System.out.println("Optimize complete");
 	}
 
