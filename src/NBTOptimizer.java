@@ -15,7 +15,7 @@ import net.querz.nbt.tag.Tag;
 public class NBTOptimizer {
 	public static void main(String[] args) {
 		try {
-			if(args.length < 1) {
+			if (args.length < 1) {
 				System.out.println("nbt file is required");
 				return;
 			}
@@ -50,11 +50,10 @@ public class NBTOptimizer {
 		CompoundTag cpt = (CompoundTag) fulltag;
 		System.out.println(cpt.keySet());
 		/*
-		for (Entry<String, Tag<?>> entry : cpt.entrySet()) {
-			String value = entry.getValue().toString();
-			System.out.println(entry.getKey() + " : " + value.substring(0, Math.min(value.length(), 175)));
-		}
-		*/
+		 * for (Entry<String, Tag<?>> entry : cpt.entrySet()) { String value =
+		 * entry.getValue().toString(); System.out.println(entry.getKey() + " : " +
+		 * value.substring(0, Math.min(value.length(), 175))); }
+		 */
 		int underblockid = -1;
 		ListTag<CompoundTag> palette = cpt.getListTag("palette").asCompoundTagList();
 		for (int i = 0; i < palette.size(); i++) {
@@ -119,21 +118,29 @@ public class NBTOptimizer {
 				outputy = Math.max(pixelmap[x][z].y + 1, outputy);
 			}
 		}
-		
+
 		System.out.println(String.format("optimized size (%d, %d, %d)", X, outputy, Z));
 		System.out.println(changecnt + " moves operated");
-		
+
 		size.set(1, new IntTag(outputy));
+
+		boolean[][][] schematic = new boolean[X][outputy][Z];
 		for (CompoundTag tag : blocks) {
 			IntTag idtag = tag.getIntTag("state");
 			ListTag<IntTag> pos = tag.getListTag("pos").asIntTagList();
 			int x = pos.get(0).asInt();
-			int y = pos.get(1).asInt();
 			int z = pos.get(2).asInt();
+			int ny = pixelmap[x][z].y;
 			if (idtag.asInt() != underblockid) {
-				pos.set(1, new IntTag(pixelmap[x][z].y));
+				pos.set(1, new IntTag(ny));
+				schematic[x][ny][z] = true;
 			} else {
-				pos.set(1, new IntTag(Math.max(0, pixelmap[x][z].y - 1)));
+				int undery = Math.max(0, ny - 1);
+				if (schematic[x][undery][z]) {
+					undery = Math.max(0, undery - 1);
+				}
+				pos.set(1, new IntTag(undery));
+				schematic[x][undery][z] = true;
 			}
 		}
 		NBTUtil.write(rawtag,
