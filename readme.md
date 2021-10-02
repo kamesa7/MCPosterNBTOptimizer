@@ -7,6 +7,13 @@ https://rebane2001.com/mapartcraft/ などで作られたnbtファイル対象�
 足場ブロックと、それ以外の地図絵に映るブロックは必ず分けてください。
 
 # 使用方法
+右上のCodeからzipをダウンロード・解凍する。
+
+
+`MCPosterNBTOptimizer.jar をダブルクリックで実行`
+
+もしくは
+
 `java -jar MCPosterNBTOptimizer.jar [nbtfile]` 
 
 実行ディレクトリ内に編集されたファイルが出力されます。
