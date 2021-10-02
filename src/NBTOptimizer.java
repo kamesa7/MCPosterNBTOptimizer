@@ -1,9 +1,13 @@
+import java.awt.FileDialog;
+import java.awt.Frame;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+
+import javax.swing.JOptionPane;
 
 import net.querz.nbt.io.NBTUtil;
 import net.querz.nbt.io.NamedTag;
@@ -16,10 +20,15 @@ public class NBTOptimizer {
 	public static void main(String[] args) {
 		try {
 			if (args.length < 1) {
-				System.out.println("nbt file is required");
-				return;
+				FileDialog dialog = new FileDialog(new Frame());
+				dialog.setMode(FileDialog.LOAD);
+				dialog.setMultipleMode(false);
+				dialog.setTitle("Select NBT file");
+				dialog.setVisible(true);
+				new NBTOptimizer(dialog.getFiles()[0]);
+			} else {
+				new NBTOptimizer(new File(args[0]));
 			}
-			new NBTOptimizer(new File(args[0]));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -143,9 +152,10 @@ public class NBTOptimizer {
 				schematic[x][undery][z] = true;
 			}
 		}
-		NBTUtil.write(rawtag,
-				String.format("%s-optimized.nbt", file.getName().substring(0, file.getName().length() - 4)));
+		String newname = String.format("%s-optimized.nbt", file.getName().substring(0, file.getName().length() - 4));
+		NBTUtil.write(rawtag, newname);
 		System.out.println("optimize complete");
+		JOptionPane.showMessageDialog(null, "Complete! \n " + newname);
 	}
 
 	LineManager[] managers;
