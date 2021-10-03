@@ -189,7 +189,7 @@ public class NBTOptimizer {
 			refresh();
 			if (x > 1)
 				managers[x - 1].refresh();
-			if (x < X - 2)
+			if (x < X - 1)
 				managers[x + 1].refresh();
 		}
 
@@ -259,8 +259,15 @@ class Pixel {
 	private int transfunc(int thisy, int sidey) {
 		int d = sidey - thisy;
 		int ad = Math.abs(d);
-		if (ad >= 2)
-			return 2;
+		switch (ad) {
+		case 0:
+			break;
+		case 1:
+			ad = 2;
+			break;
+		default:
+			ad = 3;
+		}
 		return ad;
 	}
 
@@ -327,12 +334,10 @@ class Pixel {
 		try {
 			this.sidem = map[x - 1][z];
 		} catch (IndexOutOfBoundsException e) {
-			this.sidem = null;
 		}
 		try {
 			this.sidep = map[x + 1][z];
 		} catch (IndexOutOfBoundsException e) {
-			this.sidem = null;
 		}
 
 		try {
