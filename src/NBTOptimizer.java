@@ -45,6 +45,9 @@ public class NBTOptimizer {
 	final int[][] originalmap;
 	final Pixel[][] pixelmap;
 
+	LineManager[] managers;
+	List<LineManager> sorted;
+
 	public NBTOptimizer(File file) throws IOException {
 		Properties properties = new Properties();
 		properties.load(new FileReader(new File("settings.properties")));
@@ -52,17 +55,14 @@ public class NBTOptimizer {
 		MOVELIMIT = Integer.parseInt(properties.getProperty("Warplimit"));
 		LOG = Boolean.parseBoolean(properties.getProperty("Log"));
 		UNDERBLOCK = properties.getProperty("UnderBlock");
-
+		/**
+		 * Loading
+		 */
 		NamedTag rawtag = NBTUtil.read(file);
 		System.out.println(rawtag.getName());
 		Tag<?> fulltag = rawtag.getTag();
 		CompoundTag cpt = (CompoundTag) fulltag;
 		System.out.println(cpt.keySet());
-		/*
-		 * for (Entry<String, Tag<?>> entry : cpt.entrySet()) { String value =
-		 * entry.getValue().toString(); System.out.println(entry.getKey() + " : " +
-		 * value.substring(0, Math.min(value.length(), 175))); }
-		 */
 		int underblockid = -1;
 		ListTag<CompoundTag> palette = cpt.getListTag("palette").asCompoundTagList();
 		for (int i = 0; i < palette.size(); i++) {
@@ -73,19 +73,19 @@ public class NBTOptimizer {
 				System.out.println("UnderBlockID: " + i);
 			}
 		}
-//		System.out.println(palette.size());
-
 		ListTag<IntTag> size = cpt.getListTag("size").asIntTagList();
-//		System.out.println(size.size());
 		X = size.get(0).asInt();
 		Y = size.get(1).asInt();
 		Z = size.get(2).asInt();
 		System.out.println(String.format("original size (%d, %d, %d)", X, Y, Z));
-		originalmap = new int[X][Z];
-
 		ListTag<CompoundTag> blocks = cpt.getListTag("blocks").asCompoundTagList();
 		System.out.println(blocks.size() + " blocks used");
 
+		/**
+		 * Constructing
+		 */
+		originalmap = new int[X][Z];
+		pixelmap = new Pixel[X][Z];
 		for (CompoundTag tag : blocks) {
 			ListTag<IntTag> pos = tag.getListTag("pos").asIntTagList();
 			int x = pos.get(0).asInt();
@@ -93,8 +93,6 @@ public class NBTOptimizer {
 			int z = pos.get(2).asInt();
 			originalmap[x][z] = Math.max(originalmap[x][z], y);
 		}
-
-		pixelmap = new Pixel[X][Z];
 		for (int x = 0; x < X; x++) {
 			for (int z = 0; z < Z; z++) {
 				pixelmap[x][z] = new Pixel(x, originalmap[x][z], z);
@@ -105,7 +103,6 @@ public class NBTOptimizer {
 				pixelmap[x][z].init(pixelmap);
 			}
 		}
-
 		managers = new LineManager[X];
 		for (int x = 0; x < X; x++) {
 			managers[x] = new LineManager(x);
@@ -113,26 +110,26 @@ public class NBTOptimizer {
 		sorted = new ArrayList<LineManager>(X);
 		for (LineManager lm : managers)
 			sorted.add(lm);
-		sorted.sort(null);
-		int changecnt = 0;
-		while (sorted.get(0).update > 0) {
-			sorted.get(0).dequeue();
-			sorted.sort(null);
-			changecnt++;
-		}
-
+		/**
+		 * Solving
+		 */
+		solve(0);
+//		System.out.println(String.format("phase %d: %d moves operated", 1, solve(0)));
+//		System.out.println(String.format("phase %d: %d moves operated", 2, solve(-1)));
+//		System.out.println(String.format("phase %d: %d moves operated", 3, solve(1)));
+//		System.out.println(String.format("phase %d: %d moves operated", 4, solve(0)));
+		
+		/**
+		 * Writing
+		 */
 		int outputy = 0;
 		for (int x = 0; x < X; x++) {
 			for (int z = 0; z < Z; z++) {
 				outputy = Math.max(pixelmap[x][z].y + 1, outputy);
 			}
 		}
-
 		System.out.println(String.format("optimized size (%d, %d, %d)", X, outputy, Z));
-		System.out.println(changecnt + " moves operated");
-
 		size.set(1, new IntTag(outputy));
-
 		boolean[][][] schematic = new boolean[X][outputy][Z];
 		for (CompoundTag tag : blocks) {
 			IntTag idtag = tag.getIntTag("state");
@@ -157,25 +154,37 @@ public class NBTOptimizer {
 		System.out.println("optimize complete");
 		JOptionPane.showMessageDialog(null, "Complete! \n " + newname);
 	}
-
-	LineManager[] managers;
-	List<LineManager> sorted;
+	
+	
+	int solve(final int mode) {
+		int changecnt = 0;
+		sorted.forEach((o) -> {
+			o.setMode(mode);
+		});
+		sorted.sort(null);
+		while (sorted.get(0).update > 0) {
+			sorted.get(0).dequeue();
+			sorted.sort(null);
+			changecnt++;
+		}
+		return changecnt;
+	}
 
 	class LineManager implements Comparable<LineManager> {
 		int x;
 		Operation best;
 		int update;
+		int mode = 0;
 
 		public LineManager(int x) {
 			this.x = x;
-			refresh();
 		}
 
 		void refresh() {
 			update = 0;
 			for (int a = MOVELIMIT; a >= 1; a--) {
 				for (int z = 0; z < Z; z++) {
-					int num = pixelmap[x][z].checkup(a);
+					int num = pixelmap[x][z].checkup(a, mode);
 					if (update < num) {
 						update = num;
 						best = new Operation(pixelmap[x][z], a);
@@ -191,6 +200,11 @@ public class NBTOptimizer {
 				managers[x - 1].refresh();
 			if (x < X - 1)
 				managers[x + 1].refresh();
+		}
+
+		public void setMode(int mode) {
+			this.mode = mode;
+			refresh();
 		}
 
 		@Override
