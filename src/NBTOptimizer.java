@@ -36,6 +36,9 @@ public class NBTOptimizer {
 
 	static int YLIMIT = 100;
 	static int MOVELIMIT = 5;
+	static int THRESHOLD = 5;
+	static int SECONDMOVELIMIT = 5;
+	static int SECONDTHRESHOLD = 5;
 	static boolean LOG = false;
 	static String UNDERBLOCK = "";
 
@@ -53,6 +56,9 @@ public class NBTOptimizer {
 		properties.load(new FileReader(new File("settings.properties")));
 		YLIMIT = Integer.parseInt(properties.getProperty("Ylimit"));
 		MOVELIMIT = Integer.parseInt(properties.getProperty("Warplimit"));
+		THRESHOLD = Integer.parseInt(properties.getProperty("Threshold"));
+		SECONDMOVELIMIT = Integer.parseInt(properties.getProperty("SecondWarplimit"));
+		SECONDTHRESHOLD = Integer.parseInt(properties.getProperty("SecondThreshold"));
 		LOG = Boolean.parseBoolean(properties.getProperty("Log"));
 		UNDERBLOCK = properties.getProperty("UnderBlock");
 		/**
@@ -113,12 +119,12 @@ public class NBTOptimizer {
 		/**
 		 * Solving
 		 */
-		solve(0);
-//		System.out.println(String.format("phase %d: %d moves operated", 1, solve(0)));
-//		System.out.println(String.format("phase %d: %d moves operated", 2, solve(-1)));
-//		System.out.println(String.format("phase %d: %d moves operated", 3, solve(1)));
-//		System.out.println(String.format("phase %d: %d moves operated", 4, solve(0)));
-		
+		System.out.println(String.format("phase %d: %d moves operated", 1, solve(0, MOVELIMIT, THRESHOLD)));
+		System.out
+				.println(String.format("phase %d: %d moves operated", 2, solve(-1, SECONDMOVELIMIT, SECONDTHRESHOLD)));
+		System.out.println(String.format("phase %d: %d moves operated", 3, solve(1, SECONDMOVELIMIT, SECONDTHRESHOLD)));
+		System.out.println(String.format("phase %d: %d moves operated", 4, solve(0, MOVELIMIT, THRESHOLD)));
+
 		/**
 		 * Writing
 		 */
@@ -154,15 +160,14 @@ public class NBTOptimizer {
 		System.out.println("optimize complete");
 		JOptionPane.showMessageDialog(null, "Complete! \n " + newname);
 	}
-	
-	
-	int solve(final int mode) {
+
+	int solve(final int mode, final int limit, final int threshold) {
 		int changecnt = 0;
 		sorted.forEach((o) -> {
-			o.setMode(mode);
+			o.setMode(mode, limit);
 		});
 		sorted.sort(null);
-		while (sorted.get(0).update > 0) {
+		while (sorted.get(0).update > threshold) {
 			sorted.get(0).dequeue();
 			sorted.sort(null);
 			changecnt++;
@@ -174,6 +179,7 @@ public class NBTOptimizer {
 		int x;
 		Operation best;
 		int update;
+		int limit = 0;
 		int mode = 0;
 
 		public LineManager(int x) {
@@ -182,7 +188,7 @@ public class NBTOptimizer {
 
 		void refresh() {
 			update = 0;
-			for (int a = MOVELIMIT; a >= 1; a--) {
+			for (int a = limit; a >= 1; a--) {
 				for (int z = 0; z < Z; z++) {
 					int num = pixelmap[x][z].checkup(a, mode);
 					if (update < num) {
@@ -202,8 +208,9 @@ public class NBTOptimizer {
 				managers[x + 1].refresh();
 		}
 
-		public void setMode(int mode) {
+		public void setMode(int mode, int limit) {
 			this.mode = mode;
+			this.limit = limit;
 			refresh();
 		}
 
