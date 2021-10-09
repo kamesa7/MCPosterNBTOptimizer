@@ -31,7 +31,9 @@ public class NBTOptimizer {
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
+			JOptionPane.showMessageDialog(null, e);
 		}
+		System.exit(0);
 	}
 
 	static int YLIMIT = 100;
