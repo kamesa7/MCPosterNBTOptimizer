@@ -1,3 +1,4 @@
 *.nbt
 *.class
 src/net
+/bin/

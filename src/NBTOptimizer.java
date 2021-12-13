@@ -148,7 +148,15 @@ public class NBTOptimizer {
 			if (idtag.asInt() != underblockid) {
 				pos.set(1, new IntTag(ny));
 				schematic[x][ny][z] = true;
-			} else {
+			}
+		}
+		for (CompoundTag tag : blocks) {
+			IntTag idtag = tag.getIntTag("state");
+			ListTag<IntTag> pos = tag.getListTag("pos").asIntTagList();
+			int x = pos.get(0).asInt();
+			int z = pos.get(2).asInt();
+			int ny = pixelmap[x][z].y;
+			if (idtag.asInt() == underblockid) {
 				int undery = Math.max(0, ny - 1);
 				if (schematic[x][undery][z]) {
 					undery = Math.max(0, undery - 1);
@@ -157,6 +165,27 @@ public class NBTOptimizer {
 				schematic[x][undery][z] = true;
 			}
 		}
+		List<Integer> reminds = new ArrayList<Integer>();
+		for(int i=0;i<blocks.size();i++) {
+			CompoundTag tag = blocks.get(i);
+			IntTag idtag = tag.getIntTag("state");
+			ListTag<IntTag> pos = tag.getListTag("pos").asIntTagList();
+			int x = pos.get(0).asInt();
+			int y = pos.get(1).asInt();
+			int z = pos.get(2).asInt();
+			if (idtag.asInt() == underblockid) {
+				if (z - 1 < 0 || z + 1 >= Z)
+					continue;
+				if (!schematic[x][y][z - 1] && !schematic[x][y][z + 1]) {
+					reminds.add(i);
+					schematic[x][y][z] = false;
+				}
+			}
+		}
+		for(int i=reminds.size()-1;i>=0;i--) {
+			blocks.remove(reminds.get(i));
+		}
+		System.out.println("removeunder: " + reminds.size());
 		String newname = String.format("%s-optimized.nbt", file.getName().substring(0, file.getName().length() - 4));
 		NBTUtil.write(rawtag, newname);
 		System.out.println("optimize complete");
