@@ -166,7 +166,7 @@ public class NBTOptimizer {
 			}
 		}
 		List<Integer> reminds = new ArrayList<Integer>();
-		for(int i=0;i<blocks.size();i++) {
+		for (int i = 0; i < blocks.size(); i++) {
 			CompoundTag tag = blocks.get(i);
 			IntTag idtag = tag.getIntTag("state");
 			ListTag<IntTag> pos = tag.getListTag("pos").asIntTagList();
@@ -176,13 +176,13 @@ public class NBTOptimizer {
 			if (idtag.asInt() == underblockid) {
 				if (z - 1 < 0 || z + 1 >= Z)
 					continue;
-				if (!schematic[x][y][z - 1] && !schematic[x][y][z + 1]) {
+				if (!schematic[x][y][z - 1] && !schematic[x][y][z + 1] && y != 0) {
 					reminds.add(i);
 					schematic[x][y][z] = false;
 				}
 			}
 		}
-		for(int i=reminds.size()-1;i>=0;i--) {
+		for (int i = reminds.size() - 1; i >= 0; i--) {
 			blocks.remove(reminds.get(i));
 		}
 		System.out.println("removeunder: " + reminds.size());
