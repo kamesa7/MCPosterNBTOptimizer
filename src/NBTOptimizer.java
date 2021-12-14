@@ -278,15 +278,18 @@ public class NBTOptimizer {
 		}
 
 		void refresh() {
-			update = 0;
+			update = -1;
 			for (int a = limit; a >= 1; a--) {
 				for (int z = 0; z < Z; z++) {
-					int num = pixelmap[x][z].checkup(a, mode);
+					Pixel pix = pixelmap[x][z];
+					int num = pix.checkup(a, mode);
 					if (update < num) {
 						update = num;
-						best = new Operation(pixelmap[x][z], a);
-					}else if(update == num) {
-						
+						best = new Operation(pix, a);
+					} else if (update == num) {
+						if (best.target.y < pix.y) {
+							best = new Operation(pix, a);
+						}
 					}
 				}
 			}
