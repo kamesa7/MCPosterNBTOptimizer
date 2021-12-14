@@ -1,5 +1,6 @@
 public class Pixel {
 	final int x;
+	final int defy;
 	int y;
 	final int z;
 	Pixel upp;
@@ -10,11 +11,108 @@ public class Pixel {
 	Pixel samem;
 	Pixel sidep;
 	Pixel sidem;
+	private int connect = 0;
+
+	void recconnect(int connectkey) {
+		if (connected(connectkey))
+			return;
+		connect = connectkey;
+		if (upp != null && upp.y == y + 1)
+			upp.recconnect(connectkey);
+		if (upm != null && upm.y == y + 1)
+			upm.recconnect(connectkey);
+		if (downp != null && downp.y == y - 1)
+			downp.recconnect(connectkey);
+		if (downm != null && downm.y == y - 1)
+			downm.recconnect(connectkey);
+		if (samep != null && samep.y == y)
+			samep.recconnect(connectkey);
+		if (samem != null && samem.y == y)
+			samem.recconnect(connectkey);
+		if (sidep != null && sidep.y == y)
+			sidep.recconnect(connectkey);
+		if (sidem != null && sidem.y == y)
+			sidem.recconnect(connectkey);
+	}
+
+	void getconnect(int connectkey) {
+		if (connected(connectkey))
+			return;
+		if (y <= 1)
+			recconnect(connectkey);
+		else if (upp != null && upp.y == y + 1 && upp.connected(connectkey))
+			recconnect(connectkey);
+		else if (upm != null && upm.y == y + 1 && upm.connected(connectkey))
+			recconnect(connectkey);
+		else if (downp != null && downp.y == y - 1 && downp.connected(connectkey))
+			recconnect(connectkey);
+		else if (downm != null && downm.y == y - 1 && downm.connected(connectkey))
+			recconnect(connectkey);
+		else if (samep != null && samep.y == y && samep.connected(connectkey))
+			recconnect(connectkey);
+		else if (samem != null && samem.y == y && samem.connected(connectkey))
+			recconnect(connectkey);
+		else if (sidep != null && sidep.y == y && sidep.connected(connectkey))
+			recconnect(connectkey);
+		else if (sidem != null && sidem.y == y && sidem.connected(connectkey))
+			recconnect(connectkey);
+	}
+
+	boolean connected(int connectkey) {
+		return connect == connectkey;
+	}
+
+	public boolean catchconnect(int connectkey) {
+		if (connected(connectkey))
+			return true;
+		int beforecatch = y;
+		if (samep != null)
+			y = samep.y;
+		if (samem != null)
+			y = samem.y;
+		getconnect(connectkey);
+		while (!connected(connectkey)) {
+			if (downable(this)) {
+				recdown(connectkey);
+			} else {
+				if (NBTOptimizer.LOG) {
+					System.out.println(String.format("(%d,%d) catch fail y: %d", x, z, y));
+				}
+				y = beforecatch;
+				return false;
+			}
+		}
+		if (NBTOptimizer.LOG) {
+			System.out.println(String.format("(%d,%d) catch success y: %d -> %d", x, z, beforecatch, y));
+		}
+		return true;
+	}
+
+	private boolean downable(Pixel from) {
+		return (y >= 1) && (downp == null || downp.y < y - 1 || downp.downable(this))
+				&& (downm == null || downm.y < y - 1 || downm.downable(this))
+				&& (samep == from || samep == null || samep.downable(this))
+				&& (samem == from || samem == null || samem.downable(this));
+	}
+
+	private void recdown(int connectkey) {
+		y--;
+		getconnect(connectkey);
+		if (downp != null && downp.y == y)
+			downp.recdown(connectkey);
+		if (downm != null && downm.y == y)
+			downm.recdown(connectkey);
+		if (samep != null && samep.y != y)
+			samep.recdown(connectkey);
+		if (samem != null && samem.y != y)
+			samem.recdown(connectkey);
+	}
 
 	Pixel(int x, int y, int z) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
+		this.defy = y;
 	}
 
 	private int nexty(int ny) {
@@ -152,9 +250,24 @@ public class Pixel {
 		}
 	}
 
+	public void verify() {
+		if ((upp == null || upp.y >= y + 1) && (upm == null || upm.y >= y + 1) && (downp == null || downp.y <= y - 1)
+				&& (downm == null || downm.y <= y - 1) && (samep == null || samep.y == y)
+				&& (samem == null || samem.y == y)) {
+		} else {
+			throw new Error(this.toString());
+		}
+	}
+
 	@Override
 	public String toString() {
-		return String.format("(%d, %d, %d)  upp:%d  upm:%d  sidep:%d  sidem:%d", x, y, z, upp != null ? upp.y : null,
-				upm != null ? upm.y : null, sidep != null ? sidep.y : null, sidem != null ? sidem.y : null);
+		return String.format("(%d, %d, %d)  upp:%d  upm:%d  downp:%d  downm:%d  samep:%d  samem:%d  sidep:%d  sidem:%d",
+				x, y, z, upp != null ? upp.y : null, upm != null ? upm.y : null, downp != null ? downp.y : null,
+				downm != null ? downm.y : null, samep != null ? samep.y : null, samem != null ? samem.y : null,
+				sidep != null ? sidep.y : null, sidem != null ? sidem.y : null);
+	}
+
+	public int getY() {
+		return y;
 	}
 }

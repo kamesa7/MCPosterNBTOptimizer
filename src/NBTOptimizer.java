@@ -3,9 +3,13 @@ import java.awt.Frame;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
+import java.util.Queue;
 
 import javax.swing.JOptionPane;
 
@@ -88,6 +92,7 @@ public class NBTOptimizer {
 		System.out.println(String.format("original size (%d, %d, %d)", X, Y, Z));
 		ListTag<CompoundTag> blocks = cpt.getListTag("blocks").asCompoundTagList();
 		System.out.println(blocks.size() + " blocks used");
+		System.out.println("Optimizer computing...");
 
 		/**
 		 * Constructing
@@ -128,7 +133,44 @@ public class NBTOptimizer {
 		System.out.println(String.format("phase %d: %d moves operated", 4, solve(0, MOVELIMIT, THRESHOLD)));
 
 		/**
-		 * Writing
+		 * ValidateConnectness
+		 */
+		int connect = 1;
+		for (int x = 0; x < X; x++) {
+			for (int z = 0; z < Z; z++) {
+				if (pixelmap[x][z].y <= 1)
+					pixelmap[x][z].recconnect(connect);
+			}
+		}
+		ArrayList<Pixel> connectneeds = new ArrayList<Pixel>();
+		for (int x = 0; x < X; x++) {
+			for (int z = 0; z < Z; z++) {
+				if (!pixelmap[x][z].connected(connect))
+					connectneeds.add(pixelmap[x][z]);
+			}
+		}
+		System.out.println(String.format("fix connectness %d", connectneeds.size()));
+		Collections.sort(connectneeds, Comparator.comparing(Pixel::getY).reversed());
+		Queue<Pixel> connectqueue = new ArrayDeque<Pixel>(connectneeds);
+		while (!connectqueue.isEmpty()) {
+			Pixel pix = connectqueue.poll();
+			boolean ok = pix.catchconnect(connect);
+			if (!ok)
+				connectqueue.add(pix);
+		}
+
+		/**
+		 * Verify
+		 */
+		for (int x = 0; x < X; x++) {
+			for (int z = 0; z < Z; z++) {
+				pixelmap[x][z].verify();
+			}
+		}
+		System.out.println("verify ok");
+
+		/**
+		 * UnderBlocking and EditNBT
 		 */
 		int outputy = 0;
 		for (int x = 0; x < X; x++) {
@@ -165,6 +207,9 @@ public class NBTOptimizer {
 				schematic[x][undery][z] = true;
 			}
 		}
+		/**
+		 * RemoveUnneedUnderBlock
+		 */
 		List<Integer> reminds = new ArrayList<Integer>();
 		for (int i = 0; i < blocks.size(); i++) {
 			CompoundTag tag = blocks.get(i);
@@ -188,7 +233,7 @@ public class NBTOptimizer {
 		System.out.println("removeunder: " + reminds.size());
 		String newname = String.format("%s-optimized.nbt", file.getName().substring(0, file.getName().length() - 4));
 		NBTUtil.write(rawtag, newname);
-		System.out.println("optimize complete");
+		System.out.println("optimize complete!");
 		JOptionPane.showMessageDialog(null, "Complete! \n " + newname);
 	}
 
@@ -225,6 +270,8 @@ public class NBTOptimizer {
 					if (update < num) {
 						update = num;
 						best = new Operation(pixelmap[x][z], a);
+					}else if(update == num) {
+						
 					}
 				}
 			}
