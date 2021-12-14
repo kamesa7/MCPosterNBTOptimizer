@@ -119,7 +119,7 @@ public class Pixel {
 		return Math.max(ny + 1, y);
 	}
 
-	private int diff(int mode) {
+	public int diff(int mode) {
 		int ret = 0;
 		if (mode >= 0)
 			ret += (sidep != null ? transfunc(y, sidep.y) : 0);

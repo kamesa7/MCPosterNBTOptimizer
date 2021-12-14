@@ -231,10 +231,25 @@ public class NBTOptimizer {
 			blocks.remove(reminds.get(i));
 		}
 		System.out.println("removeunder: " + reminds.size());
+
+		/**
+		 * Complete
+		 */
 		String newname = String.format("%s-optimized.nbt", file.getName().substring(0, file.getName().length() - 4));
 		NBTUtil.write(rawtag, newname);
 		System.out.println("optimize complete!");
 		JOptionPane.showMessageDialog(null, "Complete! \n " + newname);
+
+		/**
+		 * Difficulty
+		 */
+		int difficulty = 0;
+		for (int x = 0; x < X; x++) {
+			for (int z = 0; z < Z; z++) {
+				difficulty += pixelmap[x][z].diff(0);
+			}
+		}
+		System.out.println("difficulty " + difficulty);
 	}
 
 	int solve(final int mode, final int limit, final int threshold) {
