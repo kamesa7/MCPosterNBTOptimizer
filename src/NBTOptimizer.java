@@ -89,10 +89,9 @@ public class NBTOptimizer {
 		X = size.get(0).asInt();
 		Y = size.get(1).asInt();
 		Z = size.get(2).asInt();
-		System.out.println(String.format("original size (%d, %d, %d)", X, Y, Z));
+		System.out.println(String.format("Original Size (%d, %d, %d)", X, Y, Z));
 		ListTag<CompoundTag> blocks = cpt.getListTag("blocks").asCompoundTagList();
 		System.out.println(blocks.size() + " blocks used");
-		System.out.println("Optimizer computing...");
 
 		/**
 		 * Constructing
@@ -123,9 +122,12 @@ public class NBTOptimizer {
 		sorted = new ArrayList<LineManager>(X);
 		for (LineManager lm : managers)
 			sorted.add(lm);
+		System.out.println("Base Difficulty: " + difficulty());
+		
 		/**
 		 * Solving
 		 */
+		System.out.println("Optimizer Computing...");
 		System.out.println(String.format("phase %d: %d moves operated", 1, solve(0, MOVELIMIT, THRESHOLD)));
 		System.out
 				.println(String.format("phase %d: %d moves operated", 2, solve(-1, SECONDMOVELIMIT, SECONDTHRESHOLD)));
@@ -149,7 +151,7 @@ public class NBTOptimizer {
 					connectneeds.add(pixelmap[x][z]);
 			}
 		}
-		System.out.println(String.format("fix connectness %d", connectneeds.size()));
+		System.out.println(String.format("Fix Connectness: %d blocks", connectneeds.size()));
 		Collections.sort(connectneeds, Comparator.comparing(Pixel::getY).reversed());
 		Queue<Pixel> connectqueue = new ArrayDeque<Pixel>(connectneeds);
 		while (!connectqueue.isEmpty()) {
@@ -162,12 +164,17 @@ public class NBTOptimizer {
 		/**
 		 * Verify
 		 */
-		for (int x = 0; x < X; x++) {
-			for (int z = 0; z < Z; z++) {
-				pixelmap[x][z].verify();
+		try {
+			for (int x = 0; x < X; x++) {
+				for (int z = 0; z < Z; z++) {
+						pixelmap[x][z].verify();
+				}
 			}
+			System.out.println("Verify ok");
+		} catch (Exception e) {
+			System.out.println("Verify failed");
+			e.printStackTrace();
 		}
-		System.out.println("verify ok");
 
 		/**
 		 * UnderBlocking and EditNBT
@@ -178,7 +185,7 @@ public class NBTOptimizer {
 				outputy = Math.max(pixelmap[x][z].y + 1, outputy);
 			}
 		}
-		System.out.println(String.format("optimized size (%d, %d, %d)", X, outputy, Z));
+		System.out.println(String.format("Optimized Size (%d, %d, %d)", X, outputy, Z));
 		size.set(1, new IntTag(outputy));
 		boolean[][][] schematic = new boolean[X][outputy][Z];
 		for (CompoundTag tag : blocks) {
@@ -207,6 +214,7 @@ public class NBTOptimizer {
 				schematic[x][undery][z] = true;
 			}
 		}
+		
 		/**
 		 * RemoveUnneedUnderBlock
 		 */
@@ -230,26 +238,31 @@ public class NBTOptimizer {
 		for (int i = reminds.size() - 1; i >= 0; i--) {
 			blocks.remove(reminds.get(i));
 		}
-		System.out.println("removeunder: " + reminds.size());
+		System.out.println("Removing Under: " + reminds.size() + " blocks");
 
+		/**
+		 * Difficulty
+		 */
+		System.out.println("Optimized Difficulty: " + difficulty());
+		
 		/**
 		 * Complete
 		 */
 		String newname = String.format("%s-optimized.nbt", file.getName().substring(0, file.getName().length() - 4));
 		NBTUtil.write(rawtag, newname);
-		System.out.println("optimize complete!");
+		System.out.println("Optimize Complete!");
 		JOptionPane.showMessageDialog(null, "Complete! \n " + newname);
 
-		/**
-		 * Difficulty
-		 */
+	}
+	
+	int difficulty() {
 		int difficulty = 0;
 		for (int x = 0; x < X; x++) {
 			for (int z = 0; z < Z; z++) {
 				difficulty += pixelmap[x][z].diff(0);
 			}
 		}
-		System.out.println("difficulty " + difficulty);
+		return difficulty;
 	}
 
 	int solve(final int mode, final int limit, final int threshold) {

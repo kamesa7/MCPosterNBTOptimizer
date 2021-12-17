@@ -250,12 +250,12 @@ public class Pixel {
 		}
 	}
 
-	public void verify() {
+	public void verify() throws Exception{
 		if ((upp == null || upp.y >= y + 1) && (upm == null || upm.y >= y + 1) && (downp == null || downp.y <= y - 1)
 				&& (downm == null || downm.y <= y - 1) && (samep == null || samep.y == y)
 				&& (samem == null || samem.y == y)) {
 		} else {
-			throw new Error(this.toString());
+			throw new Exception(this.toString());
 		}
 	}
 
