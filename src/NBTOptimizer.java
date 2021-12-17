@@ -166,11 +166,6 @@ public class NBTOptimizer {
 			if (!ok)
 				connectqueue.add(pix);
 		}
-
-		/**
-		 * Verify
-		 */
-		verify();
 		
 		/**
 		 * UnderBlocking and EditNBT
@@ -253,7 +248,7 @@ public class NBTOptimizer {
 		 * Verify
 		 */
 		verify();
-		System.out.println("Base Difficulty: " + difficulty());
+		System.out.println("Optimized Difficulty: " + difficulty());
 
 		/**
 		 * Complete
