@@ -38,7 +38,7 @@ public class Pixel {
 	void getconnect(int connectkey) {
 		if (connected(connectkey))
 			return;
-		if (y <= 1)
+		if (y == 0)
 			recconnect(connectkey);
 		else if (upp != null && upp.y == y + 1 && upp.connected(connectkey))
 			recconnect(connectkey);

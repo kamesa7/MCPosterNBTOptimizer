@@ -51,11 +51,10 @@ public class NBTOptimizer {
 	final int X;
 	final int Y;
 	final int Z;
-	final int[][] originalmap;
 	final Pixel[][] pixelmap;
 
 	LineManager[] managers;
-	List<LineManager> sorted;
+	List<LineManager> sortinglist;
 
 	public NBTOptimizer(File file) throws IOException {
 		Properties properties = new Properties();
@@ -67,14 +66,15 @@ public class NBTOptimizer {
 		SECONDTHRESHOLD = Integer.parseInt(properties.getProperty("SecondThreshold"));
 		LOG = Boolean.parseBoolean(properties.getProperty("Log"));
 		UNDERBLOCK = properties.getProperty("UnderBlock");
+		
 		/**
 		 * Loading
 		 */
 		NamedTag rawtag = NBTUtil.read(file);
-		System.out.println(rawtag.getName());
+		//System.out.println(rawtag.getName());
 		Tag<?> fulltag = rawtag.getTag();
 		CompoundTag cpt = (CompoundTag) fulltag;
-		System.out.println(cpt.keySet());
+		//System.out.println(cpt.keySet());
 		int underblockid = -1;
 		ListTag<CompoundTag> palette = cpt.getListTag("palette").asCompoundTagList();
 		for (int i = 0; i < palette.size(); i++) {
@@ -82,7 +82,7 @@ public class NBTOptimizer {
 			String blockname = tag.getString("Name");
 			if (blockname.equals(UNDERBLOCK)) {
 				underblockid = i;
-				System.out.println("UnderBlockID: " + i);
+				System.out.println("Found UnderBlockID: " + i);
 			}
 		}
 		ListTag<IntTag> size = cpt.getListTag("size").asIntTagList();
@@ -96,7 +96,7 @@ public class NBTOptimizer {
 		/**
 		 * Constructing
 		 */
-		originalmap = new int[X][Z];
+		int[][] originalmap = new int[X][Z];
 		pixelmap = new Pixel[X][Z];
 		for (CompoundTag tag : blocks) {
 			ListTag<IntTag> pos = tag.getListTag("pos").asIntTagList();
@@ -119,11 +119,17 @@ public class NBTOptimizer {
 		for (int x = 0; x < X; x++) {
 			managers[x] = new LineManager(x);
 		}
-		sorted = new ArrayList<LineManager>(X);
+		sortinglist = new ArrayList<LineManager>(X);
 		for (LineManager lm : managers)
-			sorted.add(lm);
-		System.out.println("Base Difficulty: " + difficulty());
+			sortinglist.add(lm);
 		
+
+		/**
+		 * Verify
+		 */
+		verify();
+		System.out.println("Base Difficulty: " + difficulty());
+
 		/**
 		 * Solving
 		 */
@@ -140,7 +146,7 @@ public class NBTOptimizer {
 		int connect = 1;
 		for (int x = 0; x < X; x++) {
 			for (int z = 0; z < Z; z++) {
-				if (pixelmap[x][z].y <= 1)
+				if (pixelmap[x][z].y == 0)
 					pixelmap[x][z].recconnect(connect);
 			}
 		}
@@ -164,18 +170,8 @@ public class NBTOptimizer {
 		/**
 		 * Verify
 		 */
-		try {
-			for (int x = 0; x < X; x++) {
-				for (int z = 0; z < Z; z++) {
-						pixelmap[x][z].verify();
-				}
-			}
-			System.out.println("Verify ok");
-		} catch (Exception e) {
-			System.out.println("Verify failed");
-			e.printStackTrace();
-		}
-
+		verify();
+		
 		/**
 		 * UnderBlocking and EditNBT
 		 */
@@ -188,6 +184,7 @@ public class NBTOptimizer {
 		System.out.println(String.format("Optimized Size (%d, %d, %d)", X, outputy, Z));
 		size.set(1, new IntTag(outputy));
 		boolean[][][] schematic = new boolean[X][outputy][Z];
+		// visible blocks
 		for (CompoundTag tag : blocks) {
 			IntTag idtag = tag.getIntTag("state");
 			ListTag<IntTag> pos = tag.getListTag("pos").asIntTagList();
@@ -199,7 +196,11 @@ public class NBTOptimizer {
 				schematic[x][ny][z] = true;
 			}
 		}
-		for (CompoundTag tag : blocks) {
+
+		List<Integer> reminds = new ArrayList<Integer>();
+		// under blocks
+		for (int i = 0; i < blocks.size(); i++) {
+			CompoundTag tag = blocks.get(i);
 			IntTag idtag = tag.getIntTag("state");
 			ListTag<IntTag> pos = tag.getListTag("pos").asIntTagList();
 			int x = pos.get(0).asInt();
@@ -209,16 +210,23 @@ public class NBTOptimizer {
 				int undery = Math.max(0, ny - 1);
 				if (schematic[x][undery][z]) {
 					undery = Math.max(0, undery - 1);
+					if (schematic[x][undery][z]) { // deny 3 blocks or doubling
+						reminds.add(i);
+						continue;
+					}
 				}
 				pos.set(1, new IntTag(undery));
 				schematic[x][undery][z] = true;
 			}
 		}
-		
+		for (int i = reminds.size() - 1; i >= 0; i--) {
+			blocks.remove(reminds.get(i));
+		}
+		reminds.clear();
+
 		/**
 		 * RemoveUnneedUnderBlock
 		 */
-		List<Integer> reminds = new ArrayList<Integer>();
 		for (int i = 0; i < blocks.size(); i++) {
 			CompoundTag tag = blocks.get(i);
 			IntTag idtag = tag.getIntTag("state");
@@ -239,12 +247,14 @@ public class NBTOptimizer {
 			blocks.remove(reminds.get(i));
 		}
 		System.out.println("Removing Under: " + reminds.size() + " blocks");
+		reminds.clear();
 
 		/**
-		 * Difficulty
+		 * Verify
 		 */
-		System.out.println("Optimized Difficulty: " + difficulty());
-		
+		verify();
+		System.out.println("Base Difficulty: " + difficulty());
+
 		/**
 		 * Complete
 		 */
@@ -255,6 +265,20 @@ public class NBTOptimizer {
 
 	}
 	
+	void verify() {
+		try {
+			for (int x = 0; x < X; x++) {
+				for (int z = 0; z < Z; z++) {
+					pixelmap[x][z].verify();
+				}
+			}
+			System.out.println("Verify ok");
+		} catch (Exception e) {
+			System.out.println("Verify failed");
+			e.printStackTrace();
+		}
+	}
+
 	int difficulty() {
 		int difficulty = 0;
 		for (int x = 0; x < X; x++) {
@@ -267,14 +291,17 @@ public class NBTOptimizer {
 
 	int solve(final int mode, final int limit, final int threshold) {
 		int changecnt = 0;
-		sorted.forEach((o) -> {
+		sortinglist.forEach((o) -> {
 			o.setMode(mode, limit);
 		});
-		sorted.sort(null);
-		while (sorted.get(0).update > threshold) {
-			sorted.get(0).dequeue();
-			sorted.sort(null);
+		sortinglist.sort(null);
+		while (sortinglist.get(0).update > threshold) {
+			sortinglist.get(0).dequeue();
+			sortinglist.sort(null);
 			changecnt++;
+			if (changecnt % 1000 == 0) {
+				System.out.println(changecnt + " moves operating... ");
+			}
 		}
 		return changecnt;
 	}
