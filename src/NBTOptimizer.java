@@ -66,15 +66,15 @@ public class NBTOptimizer {
 		SECONDTHRESHOLD = Integer.parseInt(properties.getProperty("SecondThreshold"));
 		LOG = Boolean.parseBoolean(properties.getProperty("Log"));
 		UNDERBLOCK = properties.getProperty("UnderBlock");
-		
+
 		/**
 		 * Loading
 		 */
 		NamedTag rawtag = NBTUtil.read(file);
-		//System.out.println(rawtag.getName());
+		// System.out.println(rawtag.getName());
 		Tag<?> fulltag = rawtag.getTag();
 		CompoundTag cpt = (CompoundTag) fulltag;
-		//System.out.println(cpt.keySet());
+		// System.out.println(cpt.keySet());
 		int underblockid = -1;
 		ListTag<CompoundTag> palette = cpt.getListTag("palette").asCompoundTagList();
 		for (int i = 0; i < palette.size(); i++) {
@@ -122,7 +122,6 @@ public class NBTOptimizer {
 		sortinglist = new ArrayList<LineManager>(X);
 		for (LineManager lm : managers)
 			sortinglist.add(lm);
-		
 
 		/**
 		 * Verify
@@ -166,7 +165,7 @@ public class NBTOptimizer {
 			if (!ok)
 				connectqueue.add(pix);
 		}
-		
+
 		/**
 		 * UnderBlocking and EditNBT
 		 */
@@ -232,7 +231,10 @@ public class NBTOptimizer {
 			if (idtag.asInt() == underblockid) {
 				if (z - 1 < 0 || z + 1 >= Z)
 					continue;
-				if (!schematic[x][y][z - 1] && !schematic[x][y][z + 1] && y != 0) {
+				if (x - 1 < 0 || x + 1 >= X)
+					continue;
+				if (!schematic[x][y][z - 1] && !schematic[x][y][z + 1] && y != 0 && !schematic[x - 1][y][z]
+						&& !schematic[x + 1][y][z]) {
 					reminds.add(i);
 					schematic[x][y][z] = false;
 				}
@@ -259,7 +261,7 @@ public class NBTOptimizer {
 		JOptionPane.showMessageDialog(null, "Complete! \n " + newname);
 
 	}
-	
+
 	void verify() {
 		try {
 			for (int x = 0; x < X; x++) {
