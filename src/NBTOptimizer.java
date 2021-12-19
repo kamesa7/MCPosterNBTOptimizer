@@ -1,6 +1,7 @@
 import java.awt.FileDialog;
 import java.awt.Frame;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayDeque;
@@ -48,15 +49,51 @@ public class NBTOptimizer {
 	static boolean LOG = false;
 	static String UNDERBLOCK = "";
 
-	final int X;
-	final int Y;
-	final int Z;
-	final Pixel[][] pixelmap;
+	int X;
+	int Y;
+	int Z;
+	int underblockid = -1;
+	Pixel[][] pixelmap;
+	ListTag<CompoundTag> blocks;
+	ListTag<IntTag> size;
+	NamedTag rawtag;
 
 	LineManager[] managers;
 	List<LineManager> sortinglist;
+	boolean[][][] schematic;
 
 	public NBTOptimizer(File file) throws IOException {
+
+		loadProperties();
+		load(file);
+		construct();
+		verify();
+		System.out.println("Base Difficulty: " + difficulty());
+
+		/**
+		 * Solving
+		 */
+		System.out.println("Optimizer Computing...");
+		System.out.println("phase 1:");
+		System.out.println(solve(0, MOVELIMIT, THRESHOLD) + " moves operated");
+		System.out.println("phase 2:");
+		System.out.println(solve(-1, SECONDMOVELIMIT, SECONDTHRESHOLD) + " moves operated");
+		System.out.println("phase 3:");
+		System.out.println(solve(1, SECONDMOVELIMIT, SECONDTHRESHOLD) + " moves operated");
+		System.out.println("phase 4:");
+		System.out.println(solve(0, MOVELIMIT, THRESHOLD) + " moves operated");
+
+		fixconnectness();
+		makeschematic();
+		optimizeunders();
+		verify();
+		System.out.println("Optimized Difficulty: " + difficulty());
+
+		write(file);
+
+	}
+
+	private void loadProperties() throws FileNotFoundException, IOException {
 		Properties properties = new Properties();
 		properties.load(new FileReader(new File("settings.properties")));
 		YLIMIT = Integer.parseInt(properties.getProperty("Ylimit"));
@@ -66,17 +103,15 @@ public class NBTOptimizer {
 		SECONDTHRESHOLD = Integer.parseInt(properties.getProperty("SecondThreshold"));
 		LOG = Boolean.parseBoolean(properties.getProperty("Log"));
 		UNDERBLOCK = properties.getProperty("UnderBlock");
+	}
 
-		/**
-		 * Loading
-		 */
-		NamedTag rawtag = NBTUtil.read(file);
-		// System.out.println(rawtag.getName());
+	private void load(File file) throws IOException {
+		rawtag = NBTUtil.read(file);
 		Tag<?> fulltag = rawtag.getTag();
 		CompoundTag cpt = (CompoundTag) fulltag;
-		// System.out.println(cpt.keySet());
-		int underblockid = -1;
 		ListTag<CompoundTag> palette = cpt.getListTag("palette").asCompoundTagList();
+		blocks = cpt.getListTag("blocks").asCompoundTagList();
+
 		for (int i = 0; i < palette.size(); i++) {
 			CompoundTag tag = palette.get(i);
 			String blockname = tag.getString("Name");
@@ -85,17 +120,16 @@ public class NBTOptimizer {
 				System.out.println("Found UnderBlockID: " + i);
 			}
 		}
-		ListTag<IntTag> size = cpt.getListTag("size").asIntTagList();
+
+		size = cpt.getListTag("size").asIntTagList();
 		X = size.get(0).asInt();
 		Y = size.get(1).asInt();
 		Z = size.get(2).asInt();
 		System.out.println(String.format("Original Size (%d, %d, %d)", X, Y, Z));
-		ListTag<CompoundTag> blocks = cpt.getListTag("blocks").asCompoundTagList();
 		System.out.println(blocks.size() + " blocks used");
+	}
 
-		/**
-		 * Constructing
-		 */
+	private void construct() {
 		int[][] originalmap = new int[X][Z];
 		pixelmap = new Pixel[X][Z];
 		for (CompoundTag tag : blocks) {
@@ -122,26 +156,26 @@ public class NBTOptimizer {
 		sortinglist = new ArrayList<LineManager>(X);
 		for (LineManager lm : managers)
 			sortinglist.add(lm);
+	}
 
-		/**
-		 * Verify
-		 */
-		verify();
-		System.out.println("Base Difficulty: " + difficulty());
+	int solve(final int mode, final int limit, final int threshold) {
+		int changecnt = 0;
+		sortinglist.forEach((o) -> {
+			o.setMode(mode, limit);
+		});
+		sortinglist.sort(null);
+		while (sortinglist.get(0).update > threshold) {
+			sortinglist.get(0).dequeue();
+			sortinglist.sort(null);
+			changecnt++;
+			if (changecnt % 1000 == 0) {
+				System.out.println(changecnt + " moves operating... ");
+			}
+		}
+		return changecnt;
+	}
 
-		/**
-		 * Solving
-		 */
-		System.out.println("Optimizer Computing...");
-		System.out.println(String.format("phase %d: %d moves operated", 1, solve(0, MOVELIMIT, THRESHOLD)));
-		System.out
-				.println(String.format("phase %d: %d moves operated", 2, solve(-1, SECONDMOVELIMIT, SECONDTHRESHOLD)));
-		System.out.println(String.format("phase %d: %d moves operated", 3, solve(1, SECONDMOVELIMIT, SECONDTHRESHOLD)));
-		System.out.println(String.format("phase %d: %d moves operated", 4, solve(0, MOVELIMIT, THRESHOLD)));
-
-		/**
-		 * ValidateConnectness
-		 */
+	private void fixconnectness() {
 		int connect = 1;
 		for (int x = 0; x < X; x++) {
 			for (int z = 0; z < Z; z++) {
@@ -165,10 +199,9 @@ public class NBTOptimizer {
 			if (!ok)
 				connectqueue.add(pix);
 		}
+	}
 
-		/**
-		 * UnderBlocking and EditNBT
-		 */
+	private void makeschematic() {
 		int outputy = 0;
 		for (int x = 0; x < X; x++) {
 			for (int z = 0; z < Z; z++) {
@@ -177,7 +210,8 @@ public class NBTOptimizer {
 		}
 		System.out.println(String.format("Optimized Size (%d, %d, %d)", X, outputy, Z));
 		size.set(1, new IntTag(outputy));
-		boolean[][][] schematic = new boolean[X][outputy][Z];
+
+		schematic = new boolean[X][outputy][Z];
 		// visible blocks
 		for (CompoundTag tag : blocks) {
 			IntTag idtag = tag.getIntTag("state");
@@ -216,11 +250,10 @@ public class NBTOptimizer {
 		for (int i = reminds.size() - 1; i >= 0; i--) {
 			blocks.remove(reminds.get(i));
 		}
-		reminds.clear();
+	}
 
-		/**
-		 * RemoveUnneedUnderBlock
-		 */
+	private void optimizeunders() {
+		List<Integer> reminds = new ArrayList<Integer>();
 		for (int i = 0; i < blocks.size(); i++) {
 			CompoundTag tag = blocks.get(i);
 			IntTag idtag = tag.getIntTag("state");
@@ -244,22 +277,13 @@ public class NBTOptimizer {
 			blocks.remove(reminds.get(i));
 		}
 		System.out.println("Removing Under: " + reminds.size() + " blocks");
-		reminds.clear();
+	}
 
-		/**
-		 * Verify
-		 */
-		verify();
-		System.out.println("Optimized Difficulty: " + difficulty());
-
-		/**
-		 * Complete
-		 */
+	private void write(File file) throws IOException {
 		String newname = String.format("%s-optimized.nbt", file.getName().substring(0, file.getName().length() - 4));
 		NBTUtil.write(rawtag, newname);
 		System.out.println("Optimize Complete!");
 		JOptionPane.showMessageDialog(null, "Complete! \n " + newname);
-
 	}
 
 	void verify() {
@@ -284,23 +308,6 @@ public class NBTOptimizer {
 			}
 		}
 		return difficulty;
-	}
-
-	int solve(final int mode, final int limit, final int threshold) {
-		int changecnt = 0;
-		sortinglist.forEach((o) -> {
-			o.setMode(mode, limit);
-		});
-		sortinglist.sort(null);
-		while (sortinglist.get(0).update > threshold) {
-			sortinglist.get(0).dequeue();
-			sortinglist.sort(null);
-			changecnt++;
-			if (changecnt % 1000 == 0) {
-				System.out.println(changecnt + " moves operating... ");
-			}
-		}
-		return changecnt;
 	}
 
 	class LineManager implements Comparable<LineManager> {
