@@ -8,9 +8,11 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Queue;
+import java.util.Set;
 
 import javax.swing.JOptionPane;
 
@@ -82,7 +84,7 @@ public class NBTOptimizer {
 		System.out.println("phase 3:");
 		System.out.println(solve(1, SECONDMOVELIMIT, SECONDTHRESHOLD) + " moves operated");
 		System.out.println("phase 4:");
-		System.out.println(solve(0, MOVELIMIT, THRESHOLD) + " moves operated");
+		System.out.println(solve(0, SECONDMOVELIMIT, THRESHOLD) + " moves operated");
 
 		verify();
 		fixconnectness();
@@ -328,15 +330,17 @@ public class NBTOptimizer {
 
 		void refresh() {
 			update = -1;
-			for (int a = limit; a >= 1; a--) {
-				for (int z = 0; z < Z; z++) {
-					Pixel pix = pixelmap[x][z];
+			for (int z = 0; z < Z; z++) {
+				Pixel pix = pixelmap[x][z];
+				Set<Integer> al = new HashSet<Integer>();
+				pix.addal(mode, limit, al);
+				for (int a : al) {
 					int num = pix.checkup(a, mode);
 					if (update < num) {
 						update = num;
 						best = new Operation(pix, a);
 					} else if (update == num) {
-						if (best.target.y < pix.y) {
+						if (best.target.y > pix.y) {
 							best = new Operation(pix, a);
 						}
 					}

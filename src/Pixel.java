@@ -1,3 +1,5 @@
+import java.util.Set;
+
 public class Pixel {
 	final int x;
 	final int defy;
@@ -115,16 +117,37 @@ public class Pixel {
 		this.defy = y;
 	}
 
+	void addal(int mode, int limit, Set<Integer> al) {
+		if (mode >= 0 && sidep != null) {
+			int d = sidep.y - y;
+			if (1 <= d && d <= limit)
+				al.add(d);
+			if (1 <= d - 1 && d - 1 <= limit)
+				al.add(d - 1);
+			if (1 <= d + 1 && d + 1 <= limit)
+				al.add(d + 1);
+		}
+		if (mode <= 0 && sidem != null) {
+			int d = sidem.y - y;
+			if (1 <= d && d <= limit)
+				al.add(d);
+			if (1 <= d - 1 && d - 1 <= limit)
+				al.add(d - 1);
+			if (1 <= d + 1 && d + 1 <= limit)
+				al.add(d + 1);
+		}
+	}
+
 	private int nexty(int ny) {
 		return Math.max(ny + 1, y);
 	}
 
 	public int diff(int mode) {
 		int ret = 0;
-		if (mode >= 0)
-			ret += (sidep != null ? transfunc(y, sidep.y) : 0);
-		if (mode <= 0)
-			ret += (sidem != null ? transfunc(y, sidem.y) : 0);
+		if (mode >= 0 && sidep != null)
+			ret += transfunc(y, sidep.y);
+		if (mode <= 0 && sidem != null)
+			ret += transfunc(y, sidem.y);
 		return ret;
 	}
 
@@ -250,7 +273,7 @@ public class Pixel {
 		}
 	}
 
-	public void verify() throws Exception{
+	public void verify() throws Exception {
 		if ((upp == null || upp.y >= y + 1) && (upm == null || upm.y >= y + 1) && (downp == null || downp.y <= y - 1)
 				&& (downm == null || downm.y <= y - 1) && (samep == null || samep.y == y)
 				&& (samem == null || samem.y == y)) {
