@@ -50,14 +50,7 @@ public class NBTSplitter {
 		System.out.println(
 				String.format("Loaded: %s  size:(%d, %d, %d)  blocks: %d ", file.getName(), X, Y, Z, blocks.size()));
 
-		int split = 0;
-		while (split <= 0) {
-			try {
-				split = Integer.parseInt(JOptionPane.showInputDialog("Set Split Count"));
-			} catch (Exception e) {
-
-			}
-		}
+		int split = Integer.parseInt(JOptionPane.showInputDialog("Set Split Count"));
 
 		int d = X / split;
 		for (int i = 0; i < split; i++) {
