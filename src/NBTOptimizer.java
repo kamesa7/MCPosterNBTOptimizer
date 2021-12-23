@@ -43,12 +43,12 @@ public class NBTOptimizer {
 		System.exit(0);
 	}
 
-	static int YLIMIT = 100;
-	static int MOVELIMIT = 5;
-	static int THRESHOLD = 5;
-	static int SECONDMOVELIMIT = 5;
-	static int SECONDTHRESHOLD = 5;
-	static int VALUERANGE = 5;
+	static int YLIMIT;
+	static int MOVELIMIT;
+	static int THRESHOLD;
+	static int SECONDMOVELIMIT;
+	static int SECONDTHRESHOLD;
+	static int VALUERANGE;
 	static boolean LOG = false;
 	static String UNDERBLOCK = "";
 
@@ -80,15 +80,17 @@ public class NBTOptimizer {
 		System.out.println("Optimizer Computing...");
 		System.out.println("phase 1:");
 		System.out.println(solve(0, MOVELIMIT, THRESHOLD) + " moves operated");
+		fixconnectness();
 		System.out.println("phase 2:");
 		System.out.println(solve(-1, SECONDMOVELIMIT, SECONDTHRESHOLD) + " moves operated");
+		fixconnectness();
 		System.out.println("phase 3:");
 		System.out.println(solve(1, SECONDMOVELIMIT, SECONDTHRESHOLD) + " moves operated");
+		fixconnectness();
 		System.out.println("phase 4:");
 		System.out.println(solve(0, SECONDMOVELIMIT, THRESHOLD) + " moves operated");
-
-		verify();
 		fixconnectness();
+		verify();
 		makeschematic();
 		optimizeunders();
 		verify();
@@ -186,7 +188,7 @@ public class NBTOptimizer {
 	}
 
 	private void fixconnectness() {
-		int connect = 1;
+		int connect = (int) (Math.random() * Integer.MAX_VALUE);
 		for (int x = 0; x < X; x++) {
 			for (int z = 0; z < Z; z++) {
 				if (pixelmap[x][z].y == 0)
@@ -200,7 +202,7 @@ public class NBTOptimizer {
 					connectneeds.add(pixelmap[x][z]);
 			}
 		}
-		System.out.println(String.format("Fixed Connectness: %d", connectneeds.size()));
+		System.out.println(String.format("Fix Connectness: %d", connectneeds.size()));
 		Collections.sort(connectneeds, Comparator.comparing(Pixel::getY).reversed());
 		Queue<Pixel> connectqueue = new ArrayDeque<Pixel>(connectneeds);
 		while (!connectqueue.isEmpty()) {

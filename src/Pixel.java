@@ -23,10 +23,10 @@ public class Pixel {
 			upp.recconnect(connectkey);
 		if (upm != null && upm.y == y + 1)
 			upm.recconnect(connectkey);
-		if (downp != null && downp.y == y - 1)
-			downp.recconnect(connectkey);
-		if (downm != null && downm.y == y - 1)
-			downm.recconnect(connectkey);
+//		if (downp != null && downp.y == y - 1)
+//			downp.recconnect(connectkey);
+//		if (downm != null && downm.y == y - 1)
+//			downm.recconnect(connectkey);
 		if (samep != null && samep.y == y)
 			samep.recconnect(connectkey);
 		if (samem != null && samem.y == y)
@@ -42,10 +42,10 @@ public class Pixel {
 			return;
 		if (y == 0)
 			recconnect(connectkey);
-		else if (upp != null && upp.y == y + 1 && upp.connected(connectkey))
-			recconnect(connectkey);
-		else if (upm != null && upm.y == y + 1 && upm.connected(connectkey))
-			recconnect(connectkey);
+//		else if (upp != null && upp.y == y + 1 && upp.connected(connectkey))
+//			recconnect(connectkey);
+//		else if (upm != null && upm.y == y + 1 && upm.connected(connectkey))
+//			recconnect(connectkey);
 		else if (downp != null && downp.y == y - 1 && downp.connected(connectkey))
 			recconnect(connectkey);
 		else if (downm != null && downm.y == y - 1 && downm.connected(connectkey))
