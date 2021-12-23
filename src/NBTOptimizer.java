@@ -203,7 +203,7 @@ public class NBTOptimizer {
 			}
 		}
 		System.out.println(String.format("Fix Connectness: %d", connectneeds.size()));
-		Collections.sort(connectneeds, Comparator.comparing(Pixel::getY).reversed());
+		Collections.sort(connectneeds, Comparator.comparing(Pixel::getY));
 		Queue<Pixel> connectqueue = new ArrayDeque<Pixel>(connectneeds);
 		while (!connectqueue.isEmpty()) {
 			Pixel pix = connectqueue.poll();
@@ -265,6 +265,7 @@ public class NBTOptimizer {
 	}
 
 	private void optimizeunders() {
+		int rems = 0;
 		List<Integer> reminds = new ArrayList<Integer>();
 		for (int i = 0; i < blocks.size(); i++) {
 			CompoundTag tag = blocks.get(i);
@@ -288,7 +289,27 @@ public class NBTOptimizer {
 		for (int i = reminds.size() - 1; i >= 0; i--) {
 			blocks.remove(reminds.get(i));
 		}
-		System.out.println("Removed Under: " + reminds.size());
+		rems += reminds.size();
+		reminds.clear();
+		for (int i = 0; i < blocks.size(); i++) {
+			CompoundTag tag = blocks.get(i);
+			IntTag idtag = tag.getIntTag("state");
+			ListTag<IntTag> pos = tag.getListTag("pos").asIntTagList();
+			int x = pos.get(0).asInt();
+			int y = pos.get(1).asInt();
+			int z = pos.get(2).asInt();
+			if (idtag.asInt() == underblockid) {
+				if (!schematic[x][y + 1][z]) {
+					reminds.add(i);
+					schematic[x][y][z] = false;
+				}
+			}
+		}
+		for (int i = reminds.size() - 1; i >= 0; i--) {
+			blocks.remove(reminds.get(i));
+		}
+		rems += reminds.size();
+		System.out.println("Removed Under: " + rems);
 	}
 
 	private void write(File file) throws IOException {
