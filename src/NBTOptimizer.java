@@ -88,7 +88,7 @@ public class NBTOptimizer {
 		System.out.println(solve(1, SECONDMOVELIMIT, SECONDTHRESHOLD) + " moves operated");
 		fixconnectness();
 		System.out.println("phase 4:");
-		System.out.println(solve(0, SECONDMOVELIMIT, THRESHOLD) + " moves operated");
+		System.out.println(solve(0, MOVELIMIT, THRESHOLD) + " moves operated");
 		fixconnectness();
 		verify();
 		makeschematic();

@@ -281,6 +281,7 @@ public class Pixel {
 		if ((upp == null || upp.y >= y + 1) && (upm == null || upm.y >= y + 1) && (downp == null || downp.y <= y - 1)
 				&& (downm == null || downm.y <= y - 1) && (samep == null || samep.y == y)
 				&& (samem == null || samem.y == y)) {
+			// ok
 		} else {
 			throw new Exception(this.toString());
 		}
