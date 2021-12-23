@@ -181,8 +181,8 @@ public class Pixel {
 		if (samep != null && samem != null)
 			return 0;
 
-		int now = recdiff(null, mode);
-		int ifup = recifup(y + a, null, mode);
+		int now = recdiff(null, mode, NBTOptimizer.VALUERANGE);
+		int ifup = recifup(y + a, null, mode, NBTOptimizer.VALUERANGE);
 
 		if (ifup < now) {
 			return now - ifup;
@@ -192,36 +192,40 @@ public class Pixel {
 
 	void operateup(int a) {
 		if (NBTOptimizer.LOG) {
-			int now = recdiff(null, 0);
-			int ifup = recifup(y + a, null, 0);
+			int now = recdiff(null, 0, NBTOptimizer.VALUERANGE);
+			int ifup = recifup(y + a, null, 0, NBTOptimizer.VALUERANGE);
 			System.out.println(String.format("(%d,%d) y: %d -> %d  (%d -> %d)", x, z, y, y + a, now, ifup));
 		}
 		recsetup(y + a, null);
 	}
 
-	private int recdiff(Pixel from, int mode) {
+	private int recdiff(Pixel from, int mode, int range) {
 		int diff = diff(mode);
+		if (range <= 0)
+			return diff;
 		if (upp != null && upp != from)
-			diff += upp.recdiff(this, mode);
+			diff += upp.recdiff(this, mode, range - 1);
 		if (upm != null && upm != from)
-			diff += upm.recdiff(this, mode);
+			diff += upm.recdiff(this, mode, range - 1);
 		if (samep != null && samep != from)
-			diff += samep.recdiff(this, mode);
+			diff += samep.recdiff(this, mode, range - 1);
 		if (samem != null && samem != from)
-			diff += samem.recdiff(this, mode);
+			diff += samem.recdiff(this, mode, range - 1);
 		return diff;
 	}
 
-	private int recifup(int ny, Pixel from, int mode) {
+	private int recifup(int ny, Pixel from, int mode, int range) {
 		int diff = ifup(ny, mode);
+		if (range <= 0)
+			return diff;
 		if (upp != null && upp != from)
-			diff += upp.recifup(upp.nexty(ny), this, mode);
+			diff += upp.recifup(upp.nexty(ny), this, mode, range - 1);
 		if (upm != null && upm != from)
-			diff += upm.recifup(upm.nexty(ny), this, mode);
+			diff += upm.recifup(upm.nexty(ny), this, mode, range - 1);
 		if (samep != null && samep != from)
-			diff += samep.recifup(ny, this, mode);
+			diff += samep.recifup(ny, this, mode, range - 1);
 		if (samem != null && samem != from)
-			diff += samem.recifup(ny, this, mode);
+			diff += samem.recifup(ny, this, mode, range - 1);
 		return diff;
 	}
 

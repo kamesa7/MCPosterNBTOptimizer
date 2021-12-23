@@ -48,6 +48,7 @@ public class NBTOptimizer {
 	static int THRESHOLD = 5;
 	static int SECONDMOVELIMIT = 5;
 	static int SECONDTHRESHOLD = 5;
+	static int VALUERANGE = 5;
 	static boolean LOG = false;
 	static String UNDERBLOCK = "";
 
@@ -107,6 +108,7 @@ public class NBTOptimizer {
 		THRESHOLD = Integer.parseInt(properties.getProperty("Threshold"));
 		SECONDMOVELIMIT = Integer.parseInt(properties.getProperty("SecondWarplimit"));
 		SECONDTHRESHOLD = Integer.parseInt(properties.getProperty("SecondThreshold"));
+		VALUERANGE = Integer.parseInt(properties.getProperty("ValueRange"));
 		LOG = Boolean.parseBoolean(properties.getProperty("Log"));
 		UNDERBLOCK = properties.getProperty("UnderBlock");
 	}
