@@ -91,6 +91,15 @@ public class NBTOptimizer {
 		System.out.println("phase 4:");
 		System.out.println(solve(0, MOVELIMIT, THRESHOLD) + " moves operated");
 		fixconnectness();
+		System.out.println("phase 5:");
+		System.out.println(solve(-1, SECONDMOVELIMIT, SECONDTHRESHOLD) + " moves operated");
+		fixconnectness();
+		System.out.println("phase 6:");
+		System.out.println(solve(1, SECONDMOVELIMIT, SECONDTHRESHOLD) + " moves operated");
+		fixconnectness();
+		System.out.println("phase 7:");
+		System.out.println(solve(0, MOVELIMIT, THRESHOLD) + " moves operated");
+		fixconnectness();
 		verify();
 		makeschematic();
 		optimizeunders();
@@ -262,7 +271,7 @@ public class NBTOptimizer {
 			int z = pos.get(2).asInt();
 			int ny = pixelmap[x][z].y;
 			if (idtag.asInt() != underblockid) {
-				pos.set(1, new IntTag(ny));
+				pos.get(1).setValue(ny);
 				schematic[x][ny][z] = true;
 			}
 		}
