@@ -14,6 +14,8 @@ public class Pixel {
 	Pixel sidep;
 	Pixel sidem;
 	private int connect = 0;
+	int id;
+	int under = 0;
 
 	void recconnect(int connectkey) {
 		if (connected(connectkey))
@@ -110,11 +112,16 @@ public class Pixel {
 			samem.recdown(connectkey);
 	}
 
-	Pixel(int x, int y, int z) {
+	Pixel(int x, int y, int z, int id) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
 		this.defy = y;
+		this.id = id;
+	}
+	
+	void cntun() {
+		under++;
 	}
 
 	void addal(int mode, int limit, Set<Integer> al) {

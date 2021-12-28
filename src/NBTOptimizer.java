@@ -6,6 +6,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -50,7 +51,6 @@ public class NBTOptimizer {
 	static int SECONDTHRESHOLD;
 	static int VALUERANGE;
 	static boolean LOG = false;
-	static String UNDERBLOCK = "";
 
 	int X;
 	int Y;
@@ -64,6 +64,7 @@ public class NBTOptimizer {
 	LineManager[] managers;
 	List<LineManager> sortinglist;
 	boolean[][][] schematic;
+	HashSet<Integer> underneed = new HashSet<Integer>();
 
 	public NBTOptimizer(File file) throws IOException {
 
@@ -112,53 +113,82 @@ public class NBTOptimizer {
 		SECONDTHRESHOLD = Integer.parseInt(properties.getProperty("SecondThreshold"));
 		VALUERANGE = Integer.parseInt(properties.getProperty("ValueRange"));
 		LOG = Boolean.parseBoolean(properties.getProperty("Log"));
-		UNDERBLOCK = properties.getProperty("UnderBlock");
 	}
 
 	private void load(File file) throws IOException {
 		rawtag = NBTUtil.read(file);
 		Tag<?> fulltag = rawtag.getTag();
 		CompoundTag cpt = (CompoundTag) fulltag;
-		ListTag<CompoundTag> palette = cpt.getListTag("palette").asCompoundTagList();
 		blocks = cpt.getListTag("blocks").asCompoundTagList();
-
-		for (int i = 0; i < palette.size(); i++) {
-			CompoundTag tag = palette.get(i);
-			String blockname = tag.getString("Name");
-			if (blockname.equals(UNDERBLOCK)) {
-				underblockid = i;
-			}
-		}
-		if (underblockid < 0) {
-			System.out.println("##NotFound UnderBlock##");
-		}
-
 		size = cpt.getListTag("size").asIntTagList();
 		X = size.get(0).asInt();
 		Y = size.get(1).asInt();
 		Z = size.get(2).asInt();
-		System.out.println(String.format("Loaded: %s  size:(%d, %d, %d)  blocks: %d  underblockID: %d", file.getName(),
-				X, Y, Z, blocks.size(), underblockid));
+		System.out.println(
+				String.format("Loaded: %s  size:(%d, %d, %d)  blocks: %d", file.getName(), X, Y, Z, blocks.size()));
+	}
+
+	private String nameOf(int id) {
+		String name = "unknown";
+		Tag<?> fulltag = rawtag.getTag();
+		CompoundTag cpt = (CompoundTag) fulltag;
+		ListTag<CompoundTag> palette = cpt.getListTag("palette").asCompoundTagList();
+		if (id < palette.size())
+			name = palette.get(id).getString("Name");
+		if (name == null)
+			throw new Error("illegal palette");
+		return name;
 	}
 
 	private void construct() {
 		int[][] originalmap = new int[X][Z];
+		int[][] originalid = new int[X][Z];
+
 		pixelmap = new Pixel[X][Z];
 		for (CompoundTag tag : blocks) {
 			ListTag<IntTag> pos = tag.getListTag("pos").asIntTagList();
+			IntTag idtag = tag.getIntTag("state");
 			int x = pos.get(0).asInt();
 			int y = pos.get(1).asInt();
 			int z = pos.get(2).asInt();
-			originalmap[x][z] = Math.max(originalmap[x][z], y);
-		}
-		for (int x = 0; x < X; x++) {
-			for (int z = 0; z < Z; z++) {
-				pixelmap[x][z] = new Pixel(x, originalmap[x][z], z);
+			if (originalmap[x][z] < y) {
+				originalmap[x][z] = y;
+				originalid[x][z] = idtag.asInt();
 			}
 		}
 		for (int x = 0; x < X; x++) {
 			for (int z = 0; z < Z; z++) {
-				pixelmap[x][z].init(pixelmap);
+				pixelmap[x][z] = new Pixel(x, originalmap[x][z], z, originalid[x][z]);
+			}
+		}
+		for (CompoundTag tag : blocks) {
+			ListTag<IntTag> pos = tag.getListTag("pos").asIntTagList();
+			IntTag idtag = tag.getIntTag("state");
+			int x = pos.get(0).asInt();
+			int y = pos.get(1).asInt();
+			int z = pos.get(2).asInt();
+			if (y < originalmap[x][z]) {
+				pixelmap[x][z].cntun();
+				underblockid = idtag.asInt();
+			}
+		}
+		System.out.println(String.format("UnderBlock:%d:%s", underblockid, nameOf(underblockid)));
+		Tag<?> fulltag = rawtag.getTag();
+		CompoundTag cpt = (CompoundTag) fulltag;
+		ListTag<CompoundTag> palette = cpt.getListTag("palette").asCompoundTagList();
+		int[] cntunmin = new int[palette.size()];
+		Arrays.fill(cntunmin, 1 << 30);
+		for (int x = 0; x < X; x++) {
+			for (int z = 0; z < Z; z++) {
+				Pixel pix = pixelmap[x][z];
+				pix.init(pixelmap);
+				cntunmin[pix.id] = Math.min(cntunmin[pix.id], pix.under);
+			}
+		}
+		for (int i = 0; i < cntunmin.length; i++) {
+			if (cntunmin[i] > 0) {
+				underneed.add(i);
+				System.out.println(String.format("UnderNeed:%d:%s", i, nameOf(i)));
 			}
 		}
 		managers = new LineManager[X];
