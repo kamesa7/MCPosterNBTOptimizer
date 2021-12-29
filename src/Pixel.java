@@ -301,8 +301,4 @@ public class Pixel {
 				downm != null ? downm.y : null, samep != null ? samep.y : null, samem != null ? samem.y : null,
 				sidep != null ? sidep.y : null, sidem != null ? sidem.y : null);
 	}
-
-	public int getY() {
-		return y;
-	}
 }

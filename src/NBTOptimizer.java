@@ -242,7 +242,7 @@ public class NBTOptimizer {
 			}
 		}
 		System.out.println(String.format("Fix Connectness: %d", connectneeds.size()));
-		Collections.sort(connectneeds, Comparator.comparing(Pixel::getY));
+		Collections.sort(connectneeds, Comparator.comparing((o)->{return o.y;}));
 		Queue<Pixel> connectqueue = new ArrayDeque<Pixel>(connectneeds);
 		while (!connectqueue.isEmpty()) {
 			Pixel pix = connectqueue.poll();
