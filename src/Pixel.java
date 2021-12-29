@@ -14,7 +14,7 @@ public class Pixel {
 	Pixel sidep;
 	Pixel sidem;
 	private int connect = 0;
-	int id;
+	final int id;
 	int under = 0;
 
 	void recconnect(int connectkey) {
@@ -25,10 +25,7 @@ public class Pixel {
 			upp.recconnect(connectkey);
 		if (upm != null && upm.y == y + 1)
 			upm.recconnect(connectkey);
-//		if (downp != null && downp.y == y - 1)
-//			downp.recconnect(connectkey);
-//		if (downm != null && downm.y == y - 1)
-//			downm.recconnect(connectkey);
+		// no down connect
 		if (samep != null && samep.y == y)
 			samep.recconnect(connectkey);
 		if (samem != null && samem.y == y)
@@ -44,10 +41,7 @@ public class Pixel {
 			return;
 		if (y == 0)
 			recconnect(connectkey);
-//		else if (upp != null && upp.y == y + 1 && upp.connected(connectkey))
-//			recconnect(connectkey);
-//		else if (upm != null && upm.y == y + 1 && upm.connected(connectkey))
-//			recconnect(connectkey);
+		// no down connect (get from upper)
 		else if (downp != null && downp.y == y - 1 && downp.connected(connectkey))
 			recconnect(connectkey);
 		else if (downm != null && downm.y == y - 1 && downm.connected(connectkey))
@@ -119,9 +113,54 @@ public class Pixel {
 		this.defy = y;
 		this.id = id;
 	}
-	
+
 	void cntun() {
 		under++;
+	}
+
+	void optun(Set<Integer> underneeds) {
+		int need = 0;
+		if (underneeds.contains(id)) {
+			need = Math.max(need, 1);
+		}
+		if (downp != null && downp.y + 1 == y) {
+			if (underneeds.contains(downp.id))
+				need = Math.max(need, 2);
+			else
+				need = Math.max(need, 1);
+		}
+		if (downm != null && downm.y + 1 == y) {
+			if (underneeds.contains(downm.id))
+				need = Math.max(need, 2);
+			else
+				need = Math.max(need, 1);
+		}
+		if (downp != null && downp.y + 2 == y) {
+			if (underneeds.contains(downp.id))
+				need = Math.max(need, 3);
+			else
+				need = Math.max(need, 2);
+		}
+		if (downm != null && downm.y + 2 == y) {
+			if (underneeds.contains(downm.id))
+				need = Math.max(need, 3);
+			else
+				need = Math.max(need, 2);
+		}
+		if (sidep != null && sidep.y + 1 == y) {
+			if (underneeds.contains(sidep.id))
+				need = Math.max(need, 2);
+			else
+				need = Math.max(need, 1);
+		}
+		if (sidem != null && sidem.y + 1 == y) {
+			if (underneeds.contains(sidem.id))
+				need = Math.max(need, 2);
+			else
+				need = Math.max(need, 1);
+		}
+		need = Math.min(y, need);
+		under = need;
 	}
 
 	void addal(int mode, int limit, Set<Integer> al) {
@@ -173,13 +212,13 @@ public class Pixel {
 		int d = sidey - thisy;
 		int ad = Math.abs(d);
 		switch (ad) {
-		case 0:
-			break;
-		case 1:
-			ad = 2;
-			break;
-		default:
-			ad = 3;
+			case 0:
+				break;
+			case 1:
+				ad = 2;
+				break;
+			default:
+				ad = 3;
 		}
 		return ad;
 	}
@@ -285,8 +324,8 @@ public class Pixel {
 	}
 
 	public void verify() throws Exception {
-		if ((upp == null || upp.y >= y + 1) && (upm == null || upm.y >= y + 1) && (downp == null || downp.y <= y - 1)
-				&& (downm == null || downm.y <= y - 1) && (samep == null || samep.y == y)
+		if ((upp == null || upp.y > y) && (upm == null || upm.y > y) && (downp == null || downp.y < y)
+				&& (downm == null || downm.y < y) && (samep == null || samep.y == y)
 				&& (samem == null || samem.y == y)) {
 			// ok
 		} else {

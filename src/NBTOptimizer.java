@@ -64,7 +64,7 @@ public class NBTOptimizer {
 	LineManager[] managers;
 	List<LineManager> sortinglist;
 	boolean[][][] schematic;
-	HashSet<Integer> underneed = new HashSet<Integer>();
+	HashSet<Integer> underneeds = new HashSet<Integer>();
 
 	public NBTOptimizer(File file) throws IOException {
 
@@ -196,7 +196,7 @@ public class NBTOptimizer {
 		}
 		for (int i = 0; i < cntunmin.length; i++) {
 			if (cntunmin[i] > 0) {
-				underneed.add(i);
+				underneeds.add(i);
 				System.out.println(String.format("UnderNeed:%d:%s", i, nameOf(i)));
 			}
 		}
@@ -242,7 +242,9 @@ public class NBTOptimizer {
 			}
 		}
 		System.out.println(String.format("Fix Connectness: %d", connectneeds.size()));
-		Collections.sort(connectneeds, Comparator.comparing((o)->{return o.y;}));
+		Collections.sort(connectneeds, Comparator.comparing((o) -> {
+			return o.y;
+		}));
 		Queue<Pixel> connectqueue = new ArrayDeque<Pixel>(connectneeds);
 		while (!connectqueue.isEmpty()) {
 			Pixel pix = connectqueue.poll();
@@ -275,80 +277,49 @@ public class NBTOptimizer {
 				schematic[x][ny][z] = true;
 			}
 		}
-
-		List<Integer> reminds = new ArrayList<Integer>();
-		// under blocks
-		for (int i = 0; i < blocks.size(); i++) {
-			CompoundTag tag = blocks.get(i);
-			IntTag idtag = tag.getIntTag("state");
-			ListTag<IntTag> pos = tag.getListTag("pos").asIntTagList();
-			int x = pos.get(0).asInt();
-			int z = pos.get(2).asInt();
-			int ny = pixelmap[x][z].y;
-			if (idtag.asInt() == underblockid) {
-				int undery = Math.max(0, ny - 1);
-				if (schematic[x][undery][z]) {
-					undery = Math.max(0, undery - 1);
-					if (schematic[x][undery][z]) { // deny 3 blocks or doubling
-						reminds.add(i);
-						continue;
-					}
-				}
-				pos.set(1, new IntTag(undery));
-				schematic[x][undery][z] = true;
-			}
-		}
-		for (int i = reminds.size() - 1; i >= 0; i--) {
-			blocks.remove(reminds.get(i));
-		}
 	}
 
 	private void optimizeunders() {
-		int rems = 0;
-		List<Integer> reminds = new ArrayList<Integer>();
+		int bu = 0;
+		int ou = 0;
+		for (int x = 0; x < X; x++) {
+			for (int z = 0; z < Z; z++) {
+				Pixel pix = pixelmap[x][z];
+				bu += pix.under;
+				pix.optun(underneeds);
+				ou += pix.under;
+			}
+		}
+		System.out.println(
+				String.format("UnderBlocks: %d -> %d (%s off)", bu, ou, (int) ((1f - (float) ou / bu) * 100) + "%"));
+		for (int i = bu; i < ou; i++) {
+			CompoundTag tag = new CompoundTag();
+			tag.putInt("state", underblockid);
+			tag.putIntArray("pos", new int[] { 0, 0, 0 });
+			blocks.add(tag);
+		}
+		ArrayDeque<Integer> underpool = new ArrayDeque<Integer>();
 		for (int i = 0; i < blocks.size(); i++) {
 			CompoundTag tag = blocks.get(i);
 			IntTag idtag = tag.getIntTag("state");
-			ListTag<IntTag> pos = tag.getListTag("pos").asIntTagList();
-			int x = pos.get(0).asInt();
-			int y = pos.get(1).asInt();
-			int z = pos.get(2).asInt();
 			if (idtag.asInt() == underblockid) {
-				if (z - 1 < 0 || z + 1 >= Z)
-					continue;
-				if (x - 1 < 0 || x + 1 >= X)
-					continue;
-				if (!schematic[x][y][z - 1] && !schematic[x][y][z + 1] && y != 0 && !schematic[x - 1][y][z]
-						&& !schematic[x + 1][y][z]) {
-					reminds.add(i);
-					schematic[x][y][z] = false;
+				underpool.add(i);
+			}
+		}
+		for (int x = 0; x < X; x++) {
+			for (int z = 0; z < Z; z++) {
+				Pixel pix = pixelmap[x][z];
+				int need = pix.under;
+				for (int i = 0; i < need; i++) {
+					CompoundTag tag = blocks.get(underpool.poll());
+					ListTag<IntTag> pos = tag.getListTag("pos").asIntTagList();
+					pos.get(1).setValue(pix.y - 1 - i);
 				}
 			}
 		}
-		for (int i = reminds.size() - 1; i >= 0; i--) {
-			blocks.remove(reminds.get(i));
+		while (!underpool.isEmpty()) {
+			blocks.remove(underpool.pollLast());
 		}
-		rems += reminds.size();
-		reminds.clear();
-		for (int i = 0; i < blocks.size(); i++) {
-			CompoundTag tag = blocks.get(i);
-			IntTag idtag = tag.getIntTag("state");
-			ListTag<IntTag> pos = tag.getListTag("pos").asIntTagList();
-			int x = pos.get(0).asInt();
-			int y = pos.get(1).asInt();
-			int z = pos.get(2).asInt();
-			if (idtag.asInt() == underblockid) {
-				if (!schematic[x][y + 1][z]) {
-					reminds.add(i);
-					schematic[x][y][z] = false;
-				}
-			}
-		}
-		for (int i = reminds.size() - 1; i >= 0; i--) {
-			blocks.remove(reminds.get(i));
-		}
-		rems += reminds.size();
-		System.out.println("Removed Under: " + rems);
 	}
 
 	private void write(File file) throws IOException {
