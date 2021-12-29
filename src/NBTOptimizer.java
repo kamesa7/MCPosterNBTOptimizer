@@ -271,10 +271,12 @@ public class NBTOptimizer {
 			ListTag<IntTag> pos = tag.getListTag("pos").asIntTagList();
 			int x = pos.get(0).asInt();
 			int z = pos.get(2).asInt();
-			int ny = pixelmap[x][z].y;
-			if (idtag.asInt() != underblockid) {
-				pos.get(1).setValue(ny);
-				schematic[x][ny][z] = true;
+			Pixel pix = pixelmap[x][z];
+			if (idtag.asInt() == pix.id && !schematic[x][pix.y][z]) {
+				pos.get(1).setValue(pix.y);
+				schematic[x][pix.y][z] = true;
+			} else {
+				pos.get(1).setValue(-1);
 			}
 		}
 	}
@@ -282,6 +284,7 @@ public class NBTOptimizer {
 	private void optimizeunders() {
 		int bu = 0;
 		int ou = 0;
+		System.out.println(String.format("bu:%d ou:%d blo:%d que:%d",bu,ou,blocks.size(),0));
 		for (int x = 0; x < X; x++) {
 			for (int z = 0; z < Z; z++) {
 				Pixel pix = pixelmap[x][z];
@@ -290,22 +293,26 @@ public class NBTOptimizer {
 				ou += pix.under;
 			}
 		}
+		System.out.println(String.format("bu:%d ou:%d blo:%d que:%d",bu,ou,blocks.size(),0));
 		System.out.println(
 				String.format("UnderBlocks: %d -> %d (%s off)", bu, ou, (int) ((1f - (float) ou / bu) * 100) + "%"));
 		for (int i = bu; i < ou; i++) {
 			CompoundTag tag = new CompoundTag();
 			tag.putInt("state", underblockid);
-			tag.putIntArray("pos", new int[] { 0, 0, 0 });
+			tag.putIntArray("pos", new int[] { 0, -1, 0 });
 			blocks.add(tag);
 		}
 		ArrayDeque<Integer> underpool = new ArrayDeque<Integer>();
+		System.out.println(String.format("bu:%d ou:%d blo:%d que:%d",bu,ou,blocks.size(),underpool.size()));
 		for (int i = 0; i < blocks.size(); i++) {
 			CompoundTag tag = blocks.get(i);
 			IntTag idtag = tag.getIntTag("state");
-			if (idtag.asInt() == underblockid) {
+			ListTag<IntTag> pos = tag.getListTag("pos").asIntTagList();
+			if (pos.get(1).asInt() < 0 && idtag.asInt() == underblockid) {
 				underpool.add(i);
 			}
 		}
+		System.out.println(String.format("bu:%d ou:%d blo:%d que:%d",bu,ou,blocks.size(),underpool.size()));
 		for (int x = 0; x < X; x++) {
 			for (int z = 0; z < Z; z++) {
 				Pixel pix = pixelmap[x][z];
@@ -313,13 +320,17 @@ public class NBTOptimizer {
 				for (int i = 0; i < need; i++) {
 					CompoundTag tag = blocks.get(underpool.poll());
 					ListTag<IntTag> pos = tag.getListTag("pos").asIntTagList();
+					pos.get(0).setValue(x);
 					pos.get(1).setValue(pix.y - 1 - i);
+					pos.get(2).setValue(z);
 				}
 			}
 		}
+		System.out.println(String.format("bu:%d ou:%d blo:%d que:%d",bu,ou,blocks.size(),underpool.size()));
 		while (!underpool.isEmpty()) {
 			blocks.remove(underpool.pollLast());
 		}
+		System.out.println(String.format("bu:%d ou:%d blo:%d que:%d",bu,ou,blocks.size(),underpool.size()));
 	}
 
 	private void write(File file) throws IOException {
