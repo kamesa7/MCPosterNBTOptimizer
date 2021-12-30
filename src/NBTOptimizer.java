@@ -63,7 +63,6 @@ public class NBTOptimizer {
 
 	LineManager[] managers;
 	List<LineManager> sortinglist;
-	boolean[][][] schematic;
 	HashSet<Integer> underneeds = new HashSet<Integer>();
 
 	public NBTOptimizer(File file) throws IOException {
@@ -71,7 +70,7 @@ public class NBTOptimizer {
 		loadProperties();
 		load(file);
 		construct();
-		verify();
+		pixverify();
 		int bd = difficulty();
 		System.out.println("Difficulty: " + difficulty());
 
@@ -100,10 +99,9 @@ public class NBTOptimizer {
 		System.out.println("phase 7:");
 		System.out.println(solve(0, MOVELIMIT, THRESHOLD) + " moves operated");
 		fixconnectness();
-		verify();
-		makeschematic();
-		optimizeunders();
-		verify();
+		pixverify();
+		editnbt();
+		pixverify();
 		int od = difficulty();
 		System.out.println(
 				String.format("Difficulty: %d -> %d (%s off)", bd, od, (int) ((1f - (float) od / bd) * 100) + "%"));
@@ -254,37 +252,36 @@ public class NBTOptimizer {
 		}
 	}
 
-	private void makeschematic() {
+	private void editnbt() {
 		int outputy = 0;
 		for (int x = 0; x < X; x++) {
 			for (int z = 0; z < Z; z++) {
 				outputy = Math.max(pixelmap[x][z].y + 1, outputy);
 			}
 		}
-		System.out.println(String.format("Size (%d, %d, %d) -> (%d, %d, %d)", X, Y, Z, X, outputy, Z));
-		size.set(1, new IntTag(outputy));
+		size.get(1).setValue(outputy);
+		System.out.println(String.format("Size (%d, %d, %d) -> (%d, %d, %d)", X, Y, Z, X, size.get(1).asInt(), Z));
 
-		schematic = new boolean[X][outputy][Z];
-		// visible blocks
-		for (CompoundTag tag : blocks) {
+		boolean[][] schematic = new boolean[X][Z];		
+		ArrayDeque<Integer> underpool = new ArrayDeque<Integer>();
+		for (int i = 0; i < blocks.size(); i++) {
+			CompoundTag tag = blocks.get(i);
 			IntTag idtag = tag.getIntTag("state");
 			ListTag<IntTag> pos = tag.getListTag("pos").asIntTagList();
 			int x = pos.get(0).asInt();
 			int z = pos.get(2).asInt();
 			Pixel pix = pixelmap[x][z];
-			if (idtag.asInt() == pix.id && !schematic[x][pix.y][z]) {
+			if (idtag.asInt() == pix.id && !schematic[x][z]) {
 				pos.get(1).setValue(pix.y);
-				schematic[x][pix.y][z] = true;
+				schematic[x][z] = true;
 			} else {
-				pos.get(1).setValue(-1);
+				underpool.add(i);
 			}
 		}
-	}
 
-	private void optimizeunders() {
 		int bu = 0;
 		int ou = 0;
-		System.out.println(String.format("bu:%d ou:%d blo:%d que:%d",bu,ou,blocks.size(),0));
+		System.out.println(String.format("bu:%d ou:%d blo:%d que:%d", bu, ou, blocks.size(), underpool.size()));
 		for (int x = 0; x < X; x++) {
 			for (int z = 0; z < Z; z++) {
 				Pixel pix = pixelmap[x][z];
@@ -293,26 +290,17 @@ public class NBTOptimizer {
 				ou += pix.under;
 			}
 		}
-		System.out.println(String.format("bu:%d ou:%d blo:%d que:%d",bu,ou,blocks.size(),0));
+		System.out.println(String.format("bu:%d ou:%d blo:%d que:%d", bu, ou, blocks.size(), underpool.size()));
 		System.out.println(
 				String.format("UnderBlocks: %d -> %d (%s off)", bu, ou, (int) ((1f - (float) ou / bu) * 100) + "%"));
 		for (int i = bu; i < ou; i++) {
 			CompoundTag tag = new CompoundTag();
 			tag.putInt("state", underblockid);
 			tag.putIntArray("pos", new int[] { 0, -1, 0 });
+			underpool.add(blocks.size());
 			blocks.add(tag);
 		}
-		ArrayDeque<Integer> underpool = new ArrayDeque<Integer>();
-		System.out.println(String.format("bu:%d ou:%d blo:%d que:%d",bu,ou,blocks.size(),underpool.size()));
-		for (int i = 0; i < blocks.size(); i++) {
-			CompoundTag tag = blocks.get(i);
-			IntTag idtag = tag.getIntTag("state");
-			ListTag<IntTag> pos = tag.getListTag("pos").asIntTagList();
-			if (pos.get(1).asInt() < 0 && idtag.asInt() == underblockid) {
-				underpool.add(i);
-			}
-		}
-		System.out.println(String.format("bu:%d ou:%d blo:%d que:%d",bu,ou,blocks.size(),underpool.size()));
+		System.out.println(String.format("bu:%d ou:%d blo:%d que:%d", bu, ou, blocks.size(), underpool.size()));
 		for (int x = 0; x < X; x++) {
 			for (int z = 0; z < Z; z++) {
 				Pixel pix = pixelmap[x][z];
@@ -326,11 +314,11 @@ public class NBTOptimizer {
 				}
 			}
 		}
-		System.out.println(String.format("bu:%d ou:%d blo:%d que:%d",bu,ou,blocks.size(),underpool.size()));
+		System.out.println(String.format("bu:%d ou:%d blo:%d que:%d", bu, ou, blocks.size(), underpool.size()));
 		while (!underpool.isEmpty()) {
 			blocks.remove(underpool.pollLast());
 		}
-		System.out.println(String.format("bu:%d ou:%d blo:%d que:%d",bu,ou,blocks.size(),underpool.size()));
+		System.out.println(String.format("bu:%d ou:%d blo:%d que:%d", bu, ou, blocks.size(), underpool.size()));
 	}
 
 	private void write(File file) throws IOException {
@@ -340,7 +328,7 @@ public class NBTOptimizer {
 		JOptionPane.showMessageDialog(null, "Complete! \n " + newname);
 	}
 
-	void verify() {
+	void pixverify() {
 		try {
 			for (int x = 0; x < X; x++) {
 				for (int z = 0; z < Z; z++) {
