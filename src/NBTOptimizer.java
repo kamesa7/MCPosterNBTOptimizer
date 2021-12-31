@@ -262,34 +262,23 @@ public class NBTOptimizer {
 		size.get(1).setValue(outputy);
 		System.out.println(String.format("Size (%d, %d, %d) -> (%d, %d, %d)", X, Y, Z, X, size.get(1).asInt(), Z));
 
-		boolean[][] schematic = new boolean[X][Z];
 		ArrayDeque<Integer> underpool = new ArrayDeque<Integer>();
-		int pixels = 0;
-		int sameunder = 0;
 		for (int i = 0; i < blocks.size(); i++) {
 			CompoundTag tag = blocks.get(i);
 			IntTag idtag = tag.getIntTag("state");
 			ListTag<IntTag> pos = tag.getListTag("pos").asIntTagList();
 			int x = pos.get(0).asInt();
+			int y = pos.get(1).asInt();
 			int z = pos.get(2).asInt();
 			Pixel pix = pixelmap[x][z];
-			if (idtag.asInt() != pix.id) {
+			if (y < pix.defy) {
 				underpool.add(i);
 			} else {
-				if (schematic[x][z]) {
-					underpool.add(i);
-					sameunder++;
-				} else {
-					pos.get(1).setValue(pix.y);
-					schematic[x][z] = true;
-					pixels++;
-				}
+				pos.get(1).setValue(pix.y);
 			}
 		}
-		System.out.println(X * Z + "  " + pixels+"  "+sameunder);
 		int bu = 0;
 		int ou = 0;
-		System.out.println(String.format("bu:%d ou:%d blo:%d que:%d", bu, ou, blocks.size(), underpool.size()));
 		for (int x = 0; x < X; x++) {
 			for (int z = 0; z < Z; z++) {
 				Pixel pix = pixelmap[x][z];
@@ -298,17 +287,20 @@ public class NBTOptimizer {
 				ou += pix.under;
 			}
 		}
-		System.out.println(String.format("bu:%d ou:%d blo:%d que:%d", bu, ou, blocks.size(), underpool.size()));
 		System.out.println(
 				String.format("UnderBlocks: %d -> %d (%s off)", bu, ou, (int) ((1f - (float) ou / bu) * 100) + "%"));
 		for (int i = bu; i < ou; i++) {
 			CompoundTag tag = new CompoundTag();
 			tag.putInt("state", underblockid);
-			tag.putIntArray("pos", new int[] { 0, -1, 0 });
+			ListTag<IntTag> listtag = new ListTag<IntTag>(IntTag.class);
+			tag.put("pos", listtag);
+			ListTag<IntTag> pos = tag.getListTag("pos").asIntTagList();
+			pos.add(new IntTag(-1));
+			pos.add(new IntTag(-1));
+			pos.add(new IntTag(-1));
 			underpool.add(blocks.size());
 			blocks.add(tag);
 		}
-		System.out.println(String.format("bu:%d ou:%d blo:%d que:%d", bu, ou, blocks.size(), underpool.size()));
 		for (int x = 0; x < X; x++) {
 			for (int z = 0; z < Z; z++) {
 				Pixel pix = pixelmap[x][z];
@@ -322,11 +314,9 @@ public class NBTOptimizer {
 				}
 			}
 		}
-		System.out.println(String.format("bu:%d ou:%d blo:%d que:%d", bu, ou, blocks.size(), underpool.size()));
 		while (!underpool.isEmpty()) {
 			blocks.remove(underpool.pollLast());
 		}
-		System.out.println(String.format("bu:%d ou:%d blo:%d que:%d", bu, ou, blocks.size(), underpool.size()));
 	}
 
 	private void write(File file) throws IOException {

@@ -147,6 +147,12 @@ public class Pixel {
 			else
 				need = Math.max(need, 2);
 		}
+		if (samep != null && underneeds.contains(samep.id)) {
+			need = Math.max(need, 1);
+		}
+		if (samem != null && underneeds.contains(samem.id)) {
+			need = Math.max(need, 1);
+		}
 		if (sidep != null && sidep.y + 1 == y) {
 			if (underneeds.contains(sidep.id))
 				need = Math.max(need, 2);
@@ -158,6 +164,12 @@ public class Pixel {
 				need = Math.max(need, 2);
 			else
 				need = Math.max(need, 1);
+		}
+		if (sidep != null && sidep.y == y && underneeds.contains(sidep.id)) {
+			need = Math.max(need, 1);
+		}
+		if (sidem != null && sidem.y == y && underneeds.contains(sidem.id)) {
+			need = Math.max(need, 1);
 		}
 		need = Math.min(y, need);
 		if (NBTOptimizer.LOG && need != under) {
@@ -215,13 +227,13 @@ public class Pixel {
 		int d = sidey - thisy;
 		int ad = Math.abs(d);
 		switch (ad) {
-			case 0:
-				break;
-			case 1:
-				ad = 2;
-				break;
-			default:
-				ad = 3;
+		case 0:
+			break;
+		case 1:
+			ad = 2;
+			break;
+		default:
+			ad = 3;
 		}
 		return ad;
 	}
