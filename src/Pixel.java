@@ -160,6 +160,9 @@ public class Pixel {
 				need = Math.max(need, 1);
 		}
 		need = Math.min(y, need);
+		if (NBTOptimizer.LOG && need != under) {
+			System.out.println(String.format("(%d,%d) under: %d -> %d", x, z, under, need));
+		}
 		under = need;
 	}
 

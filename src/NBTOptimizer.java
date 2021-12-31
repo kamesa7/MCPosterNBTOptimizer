@@ -262,8 +262,10 @@ public class NBTOptimizer {
 		size.get(1).setValue(outputy);
 		System.out.println(String.format("Size (%d, %d, %d) -> (%d, %d, %d)", X, Y, Z, X, size.get(1).asInt(), Z));
 
-		boolean[][] schematic = new boolean[X][Z];		
+		boolean[][] schematic = new boolean[X][Z];
 		ArrayDeque<Integer> underpool = new ArrayDeque<Integer>();
+		int pixels = 0;
+		int sameunder = 0;
 		for (int i = 0; i < blocks.size(); i++) {
 			CompoundTag tag = blocks.get(i);
 			IntTag idtag = tag.getIntTag("state");
@@ -271,14 +273,20 @@ public class NBTOptimizer {
 			int x = pos.get(0).asInt();
 			int z = pos.get(2).asInt();
 			Pixel pix = pixelmap[x][z];
-			if (idtag.asInt() == pix.id && !schematic[x][z]) {
-				pos.get(1).setValue(pix.y);
-				schematic[x][z] = true;
-			} else {
+			if (idtag.asInt() != pix.id) {
 				underpool.add(i);
+			} else {
+				if (schematic[x][z]) {
+					underpool.add(i);
+					sameunder++;
+				} else {
+					pos.get(1).setValue(pix.y);
+					schematic[x][z] = true;
+					pixels++;
+				}
 			}
 		}
-
+		System.out.println(X * Z + "  " + pixels+"  "+sameunder);
 		int bu = 0;
 		int ou = 0;
 		System.out.println(String.format("bu:%d ou:%d blo:%d que:%d", bu, ou, blocks.size(), underpool.size()));
