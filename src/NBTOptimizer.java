@@ -51,6 +51,7 @@ public class NBTOptimizer {
 	static int SECONDTHRESHOLD;
 	static int VALUERANGE;
 	static boolean LOG = false;
+	static boolean ECOUNDERBLOCK = false;
 
 	int X;
 	int Y;
@@ -120,6 +121,7 @@ public class NBTOptimizer {
 		SECONDTHRESHOLD = Integer.parseInt(properties.getProperty("SecondThreshold"));
 		VALUERANGE = Integer.parseInt(properties.getProperty("ValueRange"));
 		LOG = Boolean.parseBoolean(properties.getProperty("Log"));
+		ECOUNDERBLOCK = Boolean.parseBoolean(properties.getProperty("EcoUnderBlock"));
 	}
 
 	private void load(File file) throws IOException {

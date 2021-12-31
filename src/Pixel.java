@@ -118,60 +118,75 @@ public class Pixel {
 		under++;
 	}
 
-	void optun(Set<Integer> underneeds) {
-		int need = 0;
-		if (underneeds.contains(id)) {
-			need = Math.max(need, 1);
-		}
+	void optun(Set<Integer> needsset) {
+		int sidefactor = 0;
+		int downfactor = 0;
+		int samefactor = 0;
+		// 1階段
 		if (downp != null && downp.y + 1 == y) {
-			if (underneeds.contains(downp.id))
-				need = Math.max(need, 2);
+			if (downp.needunder(needsset))
+				downfactor = Math.max(downfactor, 2);
 			else
-				need = Math.max(need, 1);
+				downfactor = Math.max(downfactor, 1);
 		}
 		if (downm != null && downm.y + 1 == y) {
-			if (underneeds.contains(downm.id))
-				need = Math.max(need, 2);
+			if (downm.needunder(needsset))
+				downfactor = Math.max(downfactor, 2);
 			else
-				need = Math.max(need, 1);
+				downfactor = Math.max(downfactor, 1);
 		}
+		// 2ワープ階段
 		if (downp != null && downp.y + 2 == y) {
-			if (underneeds.contains(downp.id))
-				need = Math.max(need, 3);
+			if (downp.needunder(needsset))
+				downfactor = Math.max(downfactor, 3);
 			else
-				need = Math.max(need, 2);
+				downfactor = Math.max(downfactor, 2);
 		}
 		if (downm != null && downm.y + 2 == y) {
-			if (underneeds.contains(downm.id))
-				need = Math.max(need, 3);
+			if (downm.needunder(needsset))
+				downfactor = Math.max(downfactor, 3);
 			else
-				need = Math.max(need, 2);
+				downfactor = Math.max(downfactor, 2);
 		}
-		if (samep != null && underneeds.contains(samep.id)) {
+		// 隣接不完全ブロック
+		if (samep != null && samep.needunder(needsset)) {
+			samefactor = Math.max(samefactor, 1);
+		}
+		if (samem != null && samem.needunder(needsset)) {
+			samefactor = Math.max(samefactor, 1);
+		}
+		if (sidep != null && sidep.y == y && sidep.needunder(needsset)) {
+			sidefactor = Math.max(sidefactor, 1);
+		}
+		if (sidem != null && sidem.y == y && sidem.needunder(needsset)) {
+			sidefactor = Math.max(sidefactor, 1);
+		}
+		// 横階段
+		if (!(samep != null && samem != null)) {
+			if (sidep != null && sidep.y + 1 == y) {
+				if (sidep.needunder(needsset))
+					sidefactor = Math.max(sidefactor, 2);
+				else
+					sidefactor = Math.max(sidefactor, 1);
+			}
+			if (sidem != null && sidem.y + 1 == y) {
+				if (sidem.needunder(needsset))
+					sidefactor = Math.max(sidefactor, 2);
+				else
+					sidefactor = Math.max(sidefactor, 1);
+			}
+		}
+		// 自身と節約
+		int need = Math.max(sidefactor, Math.max(downfactor, samefactor));
+		if (needunder(needsset)) {
 			need = Math.max(need, 1);
+		} else if (NBTOptimizer.ECOUNDERBLOCK && (sidep != null && sidep.y == y && !sidep.needunder(needsset))
+				&& (sidem != null && sidem.y == y && !sidem.needunder(needsset))) {
+			need = 0;
 		}
-		if (samem != null && underneeds.contains(samem.id)) {
-			need = Math.max(need, 1);
-		}
-		if (sidep != null && sidep.y + 1 == y) {
-			if (underneeds.contains(sidep.id))
-				need = Math.max(need, 2);
-			else
-				need = Math.max(need, 1);
-		}
-		if (sidem != null && sidem.y + 1 == y) {
-			if (underneeds.contains(sidem.id))
-				need = Math.max(need, 2);
-			else
-				need = Math.max(need, 1);
-		}
-		if (sidep != null && sidep.y == y && underneeds.contains(sidep.id)) {
-			need = Math.max(need, 1);
-		}
-		if (sidem != null && sidem.y == y && underneeds.contains(sidem.id)) {
-			need = Math.max(need, 1);
-		}
+		// 地面設置
 		need = Math.min(y, need);
+
 		if (NBTOptimizer.LOG && need != under) {
 			System.out.println(String.format("(%d,%d) under: %d -> %d", x, z, under, need));
 		}
@@ -346,6 +361,10 @@ public class Pixel {
 		} else {
 			throw new Exception(this.toString());
 		}
+	}
+
+	public boolean needunder(Set<Integer> underneeds) {
+		return underneeds.contains(id);
 	}
 
 	@Override
