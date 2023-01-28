@@ -2,3 +2,5 @@
 *.class
 src/net
 /bin/
+*.png
+*.litematic
